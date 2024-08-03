@@ -6,7 +6,6 @@ from models import *
 
 app = FastAPI()
 
-"""
 @app.get('/languages', response_model=list[LanguageModel])
 def read_languages():
     connection = create_connection()
@@ -76,8 +75,10 @@ def read_translations(language: str):
         cursor.close()
         connection.close()
     return result
-"""
 
-@app.get("/")
+
+@app.get("/hello")
 async def root():
+    connection = create_connection()
+    #cursor = connection.cursor(dictionary=True)
     return {"message": "Hello World"}

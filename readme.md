@@ -11,6 +11,11 @@ pip install -r requirements.txt
 fastapi dev app/main.py --port 8000 --host 0.0.0.0
 ```
 
+или через docker:
+```
+docker compose up -d
+```
+
 # Development usefull commands
 
 После установки какого-либо пакета - зафиксировать изменения:
@@ -22,5 +27,11 @@ pip freeze > requirements.txt
 ```
 python extract-openapi.py --app-dir app main:app --out openapi_generated.yaml
 ```
+
+или через docker:
+```
+docker exec -it bible-api python extract-openapi.py --app-dir app main:app --out openapi_generated.yaml
+```
+
 Подробнее [тут](https://www.doctave.com/blog/python-export-fastapi-openapi-spec).
 
