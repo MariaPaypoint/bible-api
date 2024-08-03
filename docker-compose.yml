@@ -2,8 +2,9 @@ services:
 
   bible-api:
     container_name: bible-api
-    image: python:3.12.4
-    command: sleep 10000000
+    #image: python:3.12.4
+    build: .
+    #command: sleep 10000000
     ports:
       - 8000:8000
     volumes:
