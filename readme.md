@@ -2,7 +2,7 @@
 
 Сервис для получения по api списков имеющихся переводов Библии, озвучек, а также текстов и информации по выравниванию аудио и текста (сопоставление каждого стиха с его временем в аудиозаписи).
 
-# Install
+# Run dev
 ```
 source venv/bin/activate
 pip install -r requirements.txt
@@ -20,5 +20,5 @@ pip freeze > requirements.txt
 ```
 python extract-openapi.py --app-dir app main:app --out openapi_generated.yaml
 ```
-Подробнее [тут](https://www.doctave.com/blog/python-export-fastapi-openapi-spec)
+Подробнее [тут](https://www.doctave.com/blog/python-export-fastapi-openapi-spec).
 
