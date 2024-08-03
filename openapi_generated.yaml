@@ -1,0 +1,151 @@
+openapi: 3.1.0
+info:
+  title: FastAPI
+  version: 0.1.0
+paths:
+  /languages:
+    get:
+      summary: Read Languages
+      operationId: read_languages_languages_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LanguageModel'
+                type: array
+                title: Response Read Languages Languages Get
+  /translations:
+    get:
+      summary: Read Translations
+      operationId: read_translations_translations_get
+      parameters:
+      - name: language
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Language
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TranslationModel'
+                title: Response Read Translations Translations Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    LanguageModel:
+      properties:
+        alias:
+          type: string
+          title: Alias
+        name_en:
+          type: string
+          title: Name En
+        name_national:
+          type: string
+          title: Name National
+      type: object
+      required:
+      - alias
+      - name_en
+      - name_national
+      title: LanguageModel
+    TranslationModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        language:
+          type: string
+          title: Language
+        voices:
+          items:
+            $ref: '#/components/schemas/VoiceModel'
+          type: array
+          title: Voices
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - description
+      - language
+      - voices
+      title: TranslationModel
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VoiceModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        is_music:
+          type: boolean
+          title: Is Music
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - description
+      - is_music
+      title: VoiceModel
