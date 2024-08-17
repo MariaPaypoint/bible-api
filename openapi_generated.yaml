@@ -5,8 +5,8 @@ info:
 paths:
   /languages:
     get:
-      summary: Read Languages
-      operationId: read_languages_languages_get
+      summary: Get Languages
+      operationId: get_languages
       responses:
         '200':
           description: Successful Response
@@ -16,18 +16,18 @@ paths:
                 items:
                   $ref: '#/components/schemas/LanguageModel'
                 type: array
-                title: Response Read Languages Languages Get
+                title: Response Get Languages
   /translations:
     get:
-      summary: Read Translations
-      operationId: read_translations_translations_get
+      summary: Get Translations
+      operationId: get_translations
       parameters:
       - name: language
         in: query
-        required: true
+        required: false
         schema:
-          type: string
           title: Language
+          type: string
       responses:
         '200':
           description: Successful Response
@@ -37,7 +37,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TranslationModel'
-                title: Response Read Translations Translations Get
+                title: Response Get Translations
         '422':
           description: Validation Error
           content:
@@ -94,8 +94,8 @@ components:
           type: string
           title: Name
         description:
-          type: string
           title: Description
+          type: string
         language:
           type: string
           title: Language
@@ -109,7 +109,6 @@ components:
       - code
       - alias
       - name
-      - description
       - language
       - voices
       title: TranslationModel
@@ -146,8 +145,8 @@ components:
           type: string
           title: Name
         description:
-          type: string
           title: Description
+          type: string
         is_music:
           type: boolean
           title: Is Music
@@ -156,6 +155,5 @@ components:
       - code
       - alias
       - name
-      - description
       - is_music
       title: VoiceModel
