@@ -33,9 +33,9 @@ class VerseWithAlignmentModel(BaseModel):
     start_paragraph: bool
 
 class PartsWithAlignmentModel(BaseModel):
-    book_code: int
+    #book_code: int
     book_number: int
-    chapter_code: int
+    #chapter_code: int
     chapter_number: int
     verses: list[VerseWithAlignmentModel]
 

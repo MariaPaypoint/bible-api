@@ -6,7 +6,11 @@ from models import *
 
 from fastapi.routing import APIRoute
 
+from excerpt import router as excerpt_router
+
 app = FastAPI()
+
+app.include_router(excerpt_router)
 
 @app.get('/languages', response_model=list[LanguageModel], operation_id="get_languages")
 def get_languages():
@@ -83,9 +87,7 @@ def get_translations(language: Optional[str] = None):
         connection.close()
     return result
 
-@app.get('/excerpt_with_alignment', operation_id="get_excerpt_with_alignment") # response_model=VerseWithAlignmentModel, 
-async def get_excerpt_with_alignment(exceprt: str, voice: int):
-    return {}
+
 
 '''
 def use_route_names_as_operation_ids(app: FastAPI) -> None:
