@@ -18,27 +18,28 @@ def get_translation_name(cursor, translation):
     
     return result['name']
     
-def get_voice_name(cursor, voice):
+def get_voice_name(cursor, voice, translation):
     query = '''
         SELECT name
         FROM audio_voices
         WHERE code = %s
+          AND bible_translation = %s
     '''
-    cursor.execute(query, (voice,))
+    cursor.execute(query, (voice, translation,))
     result = cursor.fetchone()
     if not result:
-        raise HTTPException(status_code=404, detail=f"Voice '{voice}' not found.")
+        raise HTTPException(status_code=404, detail=f"Voice {voice} not found for translation {translation}.")
     
     return result['name']
 
 # @router.get('/excerpt_with_alignment', response_model=VerseWithAlignmentModel)
-@router.get('/excerpt_with_alignment', operation_id="get_excerpt_with_alignment") # response_model=VerseWithAlignmentModel, 
+@router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment") # 
 async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Optional[int] = None):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
         translation_name = get_translation_name(cursor, translation)
-        voice_name = get_voice_name(cursor, voice) if voice else ''
+        voice_name = get_voice_name(cursor, voice, translation) if voice else ''
 
         # Регулярное выражение для парсинга строки
         pattern = r'(?P<book>[a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
@@ -136,7 +137,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             parts.append(part)
         
-        title = f"Excerpt from: {excerpt}"  # Формируем заголовок на основе переданного текста
+        title = f"Excerpt {excerpt}"  # Формируем заголовок на основе переданного текста
 
         return ExcerptWithAlignmentModel(title=title, parts=parts)
     
