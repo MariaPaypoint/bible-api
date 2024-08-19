@@ -83,13 +83,11 @@ def get_translations(language: Optional[str] = None):
         connection.close()
     return result
 
+@app.get('/excerpt_with_alignment', operation_id="get_excerpt_with_alignment") # response_model=VerseWithAlignmentModel, 
+async def get_excerpt_with_alignment(exceprt: str, voice: int):
+    return {}
 
-@app.get("/hello")
-async def root():
-    connection = create_connection()
-    #cursor = connection.cursor(dictionary=True)
-    return {"message": "Hello World"}
-
+'''
 def use_route_names_as_operation_ids(app: FastAPI) -> None:
     """
     Simplify operation IDs so that generated API clients have simpler function
@@ -100,3 +98,4 @@ def use_route_names_as_operation_ids(app: FastAPI) -> None:
     for route in app.routes:
         if isinstance(route, APIRoute):
             route.operation_id = route.name  # in this case, 'read_items'
+'''

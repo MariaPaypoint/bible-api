@@ -21,3 +21,24 @@ class TranslationModel(BaseModel):
     description: Optional[str] = None
     language: str
     voices: list[VoiceModel]
+
+# ExcerptWithAlignment
+    
+class VerseWithAlignmentModel(BaseModel):
+    code: int
+    number: int
+    text: str
+    begin: float
+    end: float
+    start_paragraph: bool
+
+class PartsWithAlignmentModel(BaseModel):
+    book_code: int
+    book_number: int
+    chapter_code: int
+    chapter_number: int
+    verses: list[VerseWithAlignmentModel]
+
+class ExcerptWithAlignmentModel(BaseModel):
+    title: str
+    parts: list[PartsWithAlignmentModel]
