@@ -3,6 +3,44 @@ info:
   title: FastAPI
   version: 0.1.0
 paths:
+  /excerpt_with_alignment:
+    get:
+      summary: Get Excerpt With Alignment
+      operationId: get_excerpt_with_alignment
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Translation
+      - name: excerpt
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Excerpt
+      - name: voice
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Voice
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExcerptWithAlignmentModel'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+          description: Unprocessable Entity
   /languages:
     get:
       summary: Get Languages
@@ -44,18 +82,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /hello:
-    get:
-      summary: Root
-      operationId: root_hello_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
 components:
   schemas:
+    ExcerptWithAlignmentModel:
+      properties:
+        title:
+          type: string
+          title: Title
+        parts:
+          items:
+            $ref: '#/components/schemas/PartsWithAlignmentModel'
+          type: array
+          title: Parts
+      type: object
+      required:
+      - title
+      - parts
+      title: ExcerptWithAlignmentModel
     HTTPValidationError:
       properties:
         detail:
@@ -82,6 +125,34 @@ components:
       - name_en
       - name_national
       title: LanguageModel
+    PartsWithAlignmentModel:
+      properties:
+        book_number:
+          type: integer
+          title: Book Number
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        verses:
+          items:
+            $ref: '#/components/schemas/VerseWithAlignmentModel'
+          type: array
+          title: Verses
+      type: object
+      required:
+      - book_number
+      - chapter_number
+      - verses
+      title: PartsWithAlignmentModel
+    SimpleErrorResponse:
+      properties:
+        detail:
+          type: string
+          title: Detail
+      type: object
+      required:
+      - detail
+      title: SimpleErrorResponse
     TranslationModel:
       properties:
         code:
@@ -133,6 +204,35 @@ components:
       - msg
       - type
       title: ValidationError
+    VerseWithAlignmentModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        number:
+          type: integer
+          title: Number
+        text:
+          type: string
+          title: Text
+        begin:
+          type: number
+          title: Begin
+        end:
+          type: number
+          title: End
+        start_paragraph:
+          type: boolean
+          title: Start Paragraph
+      type: object
+      required:
+      - code
+      - number
+      - text
+      - begin
+      - end
+      - start_paragraph
+      title: VerseWithAlignmentModel
     VoiceModel:
       properties:
         code:

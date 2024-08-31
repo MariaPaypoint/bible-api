@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
+from typing import Optional
 from database import create_connection
 import re
 from models import *
 
 router = APIRouter()
 
-def get_translation_name(cursor, translation):
+def get_translation_name(cursor, translation: int) -> str:
     query = '''
         SELECT name
         FROM bible_translations
@@ -14,11 +16,14 @@ def get_translation_name(cursor, translation):
     cursor.execute(query, (translation,))
     result = cursor.fetchone()
     if not result:
-        raise HTTPException(status_code=404, detail=f"Translation '{translation}' not found.")
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Translation {translation} not found."
+        )
     
     return result['name']
     
-def get_voice_name(cursor, voice, translation):
+def get_voice_name(cursor, voice: int, translation: int) -> str:
     query = '''
         SELECT name
         FROM audio_voices
@@ -28,12 +33,18 @@ def get_voice_name(cursor, voice, translation):
     cursor.execute(query, (voice, translation,))
     result = cursor.fetchone()
     if not result:
-        raise HTTPException(status_code=404, detail=f"Voice {voice} not found for translation {translation}.")
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Voice {voice} not found for translation {translation}."
+        )
     
     return result['name']
 
-# @router.get('/excerpt_with_alignment', response_model=VerseWithAlignmentModel)
-@router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment") # 
+# Модель для простого ответа с ошибкой
+class SimpleErrorResponse(BaseModel):
+    detail: str
+
+@router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment", responses={422: {"model": SimpleErrorResponse}})
 async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Optional[int] = None):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
@@ -47,7 +58,10 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
         matches = list(re.finditer(pattern, excerpt))
         
         if not matches:
-            raise HTTPException(status_code=400, detail="Invalid excerpt format.")
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid excerpt format ({excerpt})."
+            )
 
         parts = []
 
@@ -68,9 +82,12 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             result = cursor.fetchone()
             
             if not result:
-                raise HTTPException(status_code=404, detail=f"Book '{book_alias}' not found.")
+                raise HTTPException(
+                    status_code=422, 
+                    detail=f"Book '{book_alias}' not found."
+                )
             
-            book_number = result['alias']  # Assuming 'code' is also retrieved from the same table
+            book_number = result['alias']
 
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
@@ -108,12 +125,16 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             if not verses_results:
                 if start_verse is None:
-                    # Если стихи не указаны, но глава существует
-                    raise HTTPException(status_code=404, detail=f"No verses found for {book_alias} {chapter_number}.")
+                    raise HTTPException(
+                        status_code=422, 
+                        detail=f"No verses found for {book_alias} {chapter_number}."
+                    )
                 else:
-                    # Если указан один стих или диапазон стихов
                     verse_range = f"{start_verse}" if start_verse == end_verse or end_verse is None else f"{start_verse}-{end_verse}"
-                    raise HTTPException(status_code=404, detail=f"No verses found for {book_alias} {chapter_number}:{verse_range}.")
+                    raise HTTPException(
+                        status_code=422, 
+                        detail=f"No verses found for {book_alias} {chapter_number}:{verse_range}."
+                    )
 
             verses = [
                 VerseWithAlignmentModel(
@@ -128,23 +149,21 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             ]
 
             part = PartsWithAlignmentModel(
-                #book_code=book_code,
                 book_number=book_number,
-                #chapter_code=chapter_number,  # Assuming chapter_code can be the same as chapter_number
                 chapter_number=chapter_number,
                 verses=verses
             )
 
             parts.append(part)
         
-        title = f"Excerpt {excerpt}"  # Формируем заголовок на основе переданного текста
+        title = f"Excerpt {excerpt}"
 
         return ExcerptWithAlignmentModel(title=title, parts=parts)
     
+    except HTTPException as e:
+        raise e  # Позволяем HTTPException пробрасываться дальше с корректным кодом ошибки
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal Server Error")  # Для любых непредвиденных ошибок
     finally:
         cursor.close()
         connection.close()
-    
-    
