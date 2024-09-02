@@ -37,6 +37,7 @@ class PartsWithAlignmentModel(BaseModel):
     book_number: int
     #chapter_code: int
     chapter_number: int
+    audio_link: str
     verses: list[VerseWithAlignmentModel]
 
 class ExcerptWithAlignmentModel(BaseModel):

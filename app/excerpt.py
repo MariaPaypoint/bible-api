@@ -23,9 +23,9 @@ def get_translation_name(cursor, translation: int) -> str:
     
     return result['name']
     
-def get_voice_name(cursor, voice: int, translation: int) -> str:
+def get_voice_info(cursor, voice: int, translation: int) -> dict:
     query = '''
-        SELECT name
+        SELECT name, link_template
         FROM audio_voices
         WHERE code = %s
           AND bible_translation = %s
@@ -38,7 +38,25 @@ def get_voice_name(cursor, voice: int, translation: int) -> str:
             detail=f"Voice {voice} not found for translation {translation}."
         )
     
-    return result['name']
+    return result
+
+def get_book_number(cursor: int, book_alias: str) -> str:
+    query = '''
+        SELECT alias 
+        FROM keyword_values 
+        WHERE name = %s
+            AND group_alias = "book"
+    '''
+    cursor.execute(query, (book_alias,))
+    result = cursor.fetchone()
+    
+    if not result:
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Book '{book_alias}' not found."
+        )
+    
+    return result['alias']
 
 # Модель для простого ответа с ошибкой
 class SimpleErrorResponse(BaseModel):
@@ -50,7 +68,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
     cursor = connection.cursor(dictionary=True)
     try:
         translation_name = get_translation_name(cursor, translation)
-        voice_name = get_voice_name(cursor, voice, translation) if voice else ''
+        voice_info = get_voice_info(cursor, voice, translation) if voice else None
 
         # Регулярное выражение для парсинга строки
         pattern = r'(?P<book>[a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
@@ -72,22 +90,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             end_verse = match.group('end_verse')
 
             # Получение кода книги на основе alias
-            query = '''
-                SELECT alias 
-                FROM keyword_values 
-                WHERE name = %s
-                  AND group_alias = "book"
-            '''
-            cursor.execute(query, (book_alias,))
-            result = cursor.fetchone()
-            
-            if not result:
-                raise HTTPException(
-                    status_code=422, 
-                    detail=f"Book '{book_alias}' not found."
-                )
-            
-            book_number = result['alias']
+            book_number = get_book_number(cursor, book_alias)
 
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
@@ -148,9 +151,19 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 for verse in verses_results
             ]
 
+            audio_link = voice_info['link_template'] if voice_info else '' # https://4bbl.ru/data/syn-bondarenko/{book_zerofill}/{chapter_zerofill}.mp3
+            audio_link = audio_link.format(
+                book_zerofill=str(book_number).zfill(2), 
+                chapter_zerofill=str(chapter_number).zfill(2),
+                book=book_number,
+                chapter=chapter_number,
+                book_alias=book_alias
+            ) if audio_link else ''
+
             part = PartsWithAlignmentModel(
                 book_number=book_number,
                 chapter_number=chapter_number,
+                audio_link=audio_link,
                 verses=verses
             )
 
@@ -162,8 +175,8 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
     
     except HTTPException as e:
         raise e  # Позволяем HTTPException пробрасываться дальше с корректным кодом ошибки
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")  # Для любых непредвиденных ошибок
+    #except Exception as e:
+    #    raise HTTPException(status_code=500, detail="Internal Server Error")  # Для любых непредвиденных ошибок
     finally:
         cursor.close()
         connection.close()
