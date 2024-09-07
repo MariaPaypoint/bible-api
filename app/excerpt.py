@@ -10,7 +10,7 @@ router = APIRouter()
 def get_translation_name(cursor, translation: int) -> str:
     query = '''
         SELECT name
-        FROM bible_translations
+        FROM translations
         WHERE code = %s
     '''
     cursor.execute(query, (translation,))
@@ -26,9 +26,9 @@ def get_translation_name(cursor, translation: int) -> str:
 def get_voice_info(cursor, voice: int, translation: int) -> dict:
     query = '''
         SELECT name, link_template
-        FROM audio_voices
+        FROM voices
         WHERE code = %s
-          AND bible_translation = %s
+          AND translation = %s
     '''
     cursor.execute(query, (voice, translation,))
     result = cursor.fetchone()
@@ -43,7 +43,7 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
 def get_book_number(cursor: int, book_alias: str) -> str:
     query = '''
         SELECT alias 
-        FROM keyword_values 
+        FROM keywords 
         WHERE name = %s
             AND group_alias = "book"
     '''
@@ -97,12 +97,12 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 SELECT 
                 v.code, v.verse_number, v.text, v.start_paragraph, 
                 a.begin, a.end 
-                FROM bible_verses AS v
-                    LEFT JOIN audio_alignments a ON a.bible_verse = v.code AND audio_voice = %(voice)s
-                WHERE bible_book = (
+                FROM translation_verses AS v
+                    LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND voice = %(voice)s
+                WHERE translation_book = (
                         SELECT code 
-                        FROM bible_books 
-                        WHERE bible_translation=%(translation)s AND book_number=%(book_number)s
+                        FROM translation_books 
+                        WHERE translation=%(translation)s AND book_number=%(book_number)s
                     )
                     AND chapter_number = %(chapter_number)s
             '''

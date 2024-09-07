@@ -49,8 +49,8 @@ def get_translations(language: Optional[str] = None):
 				a.name        AS audio_name,
 				a.description AS audio_description,
 				a.is_music    AS audio_is_music
-            FROM bible_translations AS t
-            LEFT JOIN audio_voices  AS a ON a.bible_translation = t.code
+            FROM translations AS t
+            LEFT JOIN voices  AS a ON a.translation = t.code
         '''
         if language:
             sql += " WHERE t.language = %s "
@@ -87,17 +87,47 @@ def get_translations(language: Optional[str] = None):
         connection.close()
     return result
 
-
-
-'''
-def use_route_names_as_operation_ids(app: FastAPI) -> None:
-    """
-    Simplify operation IDs so that generated API clients have simpler function
-    names.
-
-    Should be called only after all routes have been added.
-    """
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            route.operation_id = route.name  # in this case, 'read_items'
-'''
+@app.get('/check_translation', operation_id="check_translation")
+def check_translation(translation: Optional[int]):
+    MUST_VERSES_COUNT = 31240
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # проверка количества стихов
+        sql = '''
+			SELECT count(*) AS cc
+			FROM translation_verses
+            WHERE translation_book IN (
+                SELECT code 
+                FROM translation_books
+                WHERE translation = %(translation)s
+            )
+		'''
+        cursor.execute(sql, {
+            'translation': translation
+        })
+        result = cursor.fetchall()
+        verses_count = result[0]['cc']
+        if verses_count != MUST_VERSES_COUNT:
+            # проверяем по книгам
+            sql = '''
+                SELECT 
+                    code, book_number, 
+                    (SELECT count(*) FROM translation_verses WHERE translation_book=b.code) AS cc,
+                    (SELECT description FROM keywords WHERE alias=b.book_number) AS must_cc 
+                FROM translation_books AS b
+                WHERE translation = %(translation)s
+                HAVING must_cc != cc 
+            '''
+            cursor.execute(sql, {
+                'translation': translation
+            })
+            result = cursor.fetchall()
+            #raise HTTPException(status_code=500, detail=f"Verses count {verses_count} is not correct (must be {MUST_VERSES_COUNT})")
+            raise HTTPException(status_code=500, detail=result)
+    except HTTPException as e:
+        raise e
+    finally:
+        cursor.close()
+        connection.close()
+    return verses_count
