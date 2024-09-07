@@ -139,17 +139,23 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                         detail=f"No verses found for {book_alias} {chapter_number}:{verse_range}."
                     )
 
-            verses = [
-                VerseWithAlignmentModel(
+            verses = []
+            for verse in verses_results:
+                if verse['begin'] is None or verse['end'] is None:
+                    raise HTTPException(
+                        status_code=422, 
+                        detail=f"Verse alignment not found for verse {verse['verse_number']}"
+                    )
+                
+                verse_model = VerseWithAlignmentModel(
                     code=verse['code'],
                     number=verse['verse_number'],
                     text=verse['text'],
-                    begin=verse['begin'] if verse['begin'] is not None else 0.0,
+                    begin=verse['begin'],  # Мы уже проверили, что 'begin' не равен None
                     end=verse['end'] if verse['end'] is not None else 0.0,
                     start_paragraph=verse['start_paragraph']
                 )
-                for verse in verses_results
-            ]
+                verses.append(verse_model)
 
             audio_link = voice_info['link_template'] if voice_info else '' # https://4bbl.ru/data/syn-bondarenko/{book_zerofill}/{chapter_zerofill}.mp3
             audio_link = audio_link.format(

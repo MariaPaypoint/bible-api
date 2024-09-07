@@ -21,9 +21,9 @@ def replace_anyof_with_string_type(data):
                         # Сохраняем другие ключи и заменяем только anyOf на type: string
                         value.pop('anyOf')  # Удаляем anyOf
                         value['type'] = 'string'  # Добавляем type: string
-                    elif types == {'int', 'null'}:
+                    elif types == {'integer', 'null'}:
                         value.pop('anyOf')
-                        value['type'] = 'int'
+                        value['type'] = 'integer'
                 else:
                     # Рекурсивно обходим вложенные словари
                     replace_anyof_with_string_type(value)

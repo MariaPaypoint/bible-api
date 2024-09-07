@@ -24,10 +24,8 @@ paths:
         in: query
         required: false
         schema:
-          anyOf:
-          - type: integer
-          - type: 'null'
           title: Voice
+          type: integer
       responses:
         '200':
           description: Successful Response
@@ -133,6 +131,9 @@ components:
         chapter_number:
           type: integer
           title: Chapter Number
+        audio_link:
+          type: string
+          title: Audio Link
         verses:
           items:
             $ref: '#/components/schemas/VerseWithAlignmentModel'
@@ -142,6 +143,7 @@ components:
       required:
       - book_number
       - chapter_number
+      - audio_link
       - verses
       title: PartsWithAlignmentModel
     SimpleErrorResponse:
