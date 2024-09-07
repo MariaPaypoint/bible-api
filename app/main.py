@@ -110,24 +110,39 @@ def check_translation(translation: Optional[int]):
         verses_count = result[0]['cc']
         if verses_count != MUST_VERSES_COUNT:
             # проверяем по книгам
+            # sql = '''
+            #    SELECT 
+            #        code, book_number, 
+            #        (SELECT count(*) FROM translation_verses WHERE translation_book=b.code) AS cc,
+            #        (SELECT description FROM keywords WHERE alias=b.book_number) AS must_cc 
+            #    FROM translation_books AS b
+            #    WHERE translation = %(translation)s
+            #    HAVING must_cc != cc 
+            # '''
+            
             sql = '''
-                SELECT 
-                    code, book_number, 
-                    (SELECT count(*) FROM translation_verses WHERE translation_book=b.code) AS cc,
-                    (SELECT description FROM keywords WHERE alias=b.book_number) AS must_cc 
-                FROM translation_books AS b
-                WHERE translation = %(translation)s
-                HAVING must_cc != cc 
+                SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, COUNT(tv.code) AS translation_verses_count, s.tolerance_count
+                FROM bible_stat AS s
+                  LEFT JOIN translation_books AS tb ON tb.book_number = s.book_number AND tb.translation = %(translation)s
+                  LEFT JOIN translation_verses AS tv ON tv.translation_book = tb.code AND tv.chapter_number = s.chapter_number
+                WHERE s.book_number != 19 #psalms
+                GROUP BY s.book_number, s.chapter_number, s.verses_count, s.tolerance_count
+                HAVING ABS(must_verses_count - translation_verses_count) > tolerance_count
+                ORDER BY book_number, chapter_number
             '''
+            
             cursor.execute(sql, {
                 'translation': translation
             })
             result = cursor.fetchall()
-            #raise HTTPException(status_code=500, detail=f"Verses count {verses_count} is not correct (must be {MUST_VERSES_COUNT})")
-            raise HTTPException(status_code=500, detail=result)
+            if result:
+                raise HTTPException(status_code=422, detail=result)
+            
+        # проверяем наличие лишних книг и глав
+
     except HTTPException as e:
         raise e
     finally:
         cursor.close()
         connection.close()
-    return verses_count
+    return {"result_text": "Everything is OK"}
