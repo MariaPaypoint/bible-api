@@ -93,7 +93,23 @@ def check_translation(translation: Optional[int]):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
-        # проверка количества стихов
+        # проверка пустых стихов
+        sql = '''
+            SELECT tb.code AS book_code, tb.book_number, tb.name AS book_name, chapter_number, count(*) AS empty_verses_count
+            FROM translation_verses AS v
+              LEFT JOIN translation_books AS tb ON tb.code = v.translation_book AND tb.translation = %(translation)s
+            WHERE text = ""
+              AND tb.book_number IS NOT NULL
+            GROUP BY tb.code, tb.book_number, tb.name, chapter_number
+        '''
+        cursor.execute(sql, {
+            'translation': translation
+        })
+        result = cursor.fetchall()
+        if result:
+            raise HTTPException(status_code=422, detail={"error_description": "Empty verses", "error_list": result})
+    
+        # проверка количества стихов по главам
         sql = '''
 			SELECT count(*) AS cc
 			FROM translation_verses
@@ -109,17 +125,6 @@ def check_translation(translation: Optional[int]):
         result = cursor.fetchall()
         verses_count = result[0]['cc']
         if verses_count != MUST_VERSES_COUNT:
-            # проверяем по книгам
-            # sql = '''
-            #    SELECT 
-            #        code, book_number, 
-            #        (SELECT count(*) FROM translation_verses WHERE translation_book=b.code) AS cc,
-            #        (SELECT description FROM keywords WHERE alias=b.book_number) AS must_cc 
-            #    FROM translation_books AS b
-            #    WHERE translation = %(translation)s
-            #    HAVING must_cc != cc 
-            # '''
-            
             sql = '''
                 SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, COUNT(tv.code) AS translation_verses_count, s.tolerance_count
                 FROM bible_stat AS s
@@ -130,16 +135,15 @@ def check_translation(translation: Optional[int]):
                 HAVING ABS(must_verses_count - translation_verses_count) > tolerance_count
                 ORDER BY book_number, chapter_number
             '''
-            
             cursor.execute(sql, {
                 'translation': translation
             })
             result = cursor.fetchall()
             if result:
-                raise HTTPException(status_code=422, detail=result)
+                raise HTTPException(status_code=422, detail={"error_description": "Incorrect verses count in chapter", "error_list": result})
             
         # проверяем наличие лишних книг и глав
-
+            
     except HTTPException as e:
         raise e
     finally:

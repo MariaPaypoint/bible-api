@@ -42,4 +42,5 @@ class PartsWithAlignmentModel(BaseModel):
 
 class ExcerptWithAlignmentModel(BaseModel):
     title: str
+    is_single_chapter: bool
     parts: list[PartsWithAlignmentModel]

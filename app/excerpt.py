@@ -70,6 +70,8 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
         translation_name = get_translation_name(cursor, translation)
         voice_info = get_voice_info(cursor, voice, translation) if voice else None
 
+        is_single_chapter = True
+
         # Регулярное выражение для парсинга строки
         pattern = r'(?P<book>[a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
         
@@ -113,6 +115,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 'chapter_number': chapter_number,
             }
             if start_verse is not None:
+                is_single_chapter = False
                 params['start_verse'] = int(start_verse)
                 params['end_verse'] = int(end_verse) if end_verse else int(start_verse)
                 if start_verse == end_verse:
@@ -142,10 +145,12 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             verses = []
             for verse in verses_results:
                 if verse['begin'] is None or verse['end'] is None:
-                    raise HTTPException(
-                        status_code=422, 
-                        detail=f"Verse alignment not found for verse {verse['verse_number']}"
-                    )
+                #    raise HTTPException(
+                #        status_code=422, 
+                #        detail=f"Verse alignment not found for verse {verse['verse_number']}"
+                #    )
+                    verse['begin'] = 0
+                    verse['end'] = 0
                 
                 verse_model = VerseWithAlignmentModel(
                     code=verse['code'],
@@ -176,8 +181,14 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             parts.append(part)
         
         title = f"Excerpt {excerpt}"
+        if len(parts) > 1:
+            is_single_chapter = False
 
-        return ExcerptWithAlignmentModel(title=title, parts=parts)
+        return ExcerptWithAlignmentModel(
+            title=title, 
+            is_single_chapter=is_single_chapter,
+            parts=parts
+        )
     
     except HTTPException as e:
         raise e  # Позволяем HTTPException пробрасываться дальше с корректным кодом ошибки

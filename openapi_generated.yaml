@@ -80,6 +80,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /check_translation:
+    get:
+      summary: Check Translation
+      operationId: check_translation
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          title: Translation
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     ExcerptWithAlignmentModel:
@@ -87,6 +110,9 @@ components:
         title:
           type: string
           title: Title
+        is_single_chapter:
+          type: boolean
+          title: Is Single Chapter
         parts:
           items:
             $ref: '#/components/schemas/PartsWithAlignmentModel'
@@ -95,6 +121,7 @@ components:
       type: object
       required:
       - title
+      - is_single_chapter
       - parts
       title: ExcerptWithAlignmentModel
     HTTPValidationError:
