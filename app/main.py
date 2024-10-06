@@ -100,6 +100,7 @@ def check_translation(translation: Optional[int]):
               LEFT JOIN translation_books AS tb ON tb.code = v.translation_book AND tb.translation = %(translation)s
             WHERE text = ""
               AND tb.book_number IS NOT NULL
+              AND verse_number_join >= 0
             GROUP BY tb.code, tb.book_number, tb.name, chapter_number
         '''
         cursor.execute(sql, {
@@ -126,7 +127,7 @@ def check_translation(translation: Optional[int]):
         verses_count = result[0]['cc']
         if verses_count != MUST_VERSES_COUNT:
             sql = '''
-                SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, COUNT(tv.code) AS translation_verses_count, s.tolerance_count
+                SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, CONVERT(COUNT(tv.code) + IFNULL(SUM(tv.verse_number_join),0), SIGNED) AS translation_verses_count, s.tolerance_count
                 FROM bible_stat AS s
                   LEFT JOIN translation_books AS tb ON tb.book_number = s.book_number AND tb.translation = %(translation)s
                   LEFT JOIN translation_verses AS tv ON tv.translation_book = tb.code AND tv.chapter_number = s.chapter_number

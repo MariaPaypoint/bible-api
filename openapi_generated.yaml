@@ -241,6 +241,9 @@ components:
         number:
           type: integer
           title: Number
+        join:
+          type: integer
+          title: Join
         text:
           type: string
           title: Text
@@ -257,6 +260,7 @@ components:
       required:
       - code
       - number
+      - join
       - text
       - begin
       - end

@@ -97,7 +97,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
                 SELECT 
-                v.code, v.verse_number, v.text, v.start_paragraph, 
+                v.code, v.verse_number, v.verse_number_join, v.text, v.start_paragraph, 
                 a.begin, a.end 
                 FROM translation_verses AS v
                     LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND voice = %(voice)s
@@ -155,6 +155,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 verse_model = VerseWithAlignmentModel(
                     code=verse['code'],
                     number=verse['verse_number'],
+                    join=verse['verse_number_join'],
                     text=verse['text'],
                     begin=verse['begin'],  # Мы уже проверили, что 'begin' не равен None
                     end=verse['end'] if verse['end'] is not None else 0.0,

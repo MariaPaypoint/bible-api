@@ -27,6 +27,7 @@ class TranslationModel(BaseModel):
 class VerseWithAlignmentModel(BaseModel):
     code: int
     number: int
+    join: int
     text: str
     begin: float
     end: float
