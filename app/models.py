@@ -45,3 +45,19 @@ class ExcerptWithAlignmentModel(BaseModel):
     title: str
     is_single_chapter: bool
     parts: list[PartsWithAlignmentModel]
+
+# TranslationInfoModel
+
+"""
+class BookInfoModel(BaseModel):
+    
+
+class TranslationInfoModel(BaseModel):
+    code: int
+    alias: str
+    name: str
+    description: Optional[str] = None
+    language: str
+    books_info: list[BookInfoModel]
+
+"""

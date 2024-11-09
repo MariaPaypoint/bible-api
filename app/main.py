@@ -7,10 +7,12 @@ from models import *
 from fastapi.routing import APIRoute
 
 from excerpt import router as excerpt_router
+from checks import router as checks_router
 
 app = FastAPI()
 
 app.include_router(excerpt_router)
+app.include_router(checks_router)
 
 @app.get('/languages', response_model=list[LanguageModel], operation_id="get_languages")
 def get_languages():
@@ -86,68 +88,3 @@ def get_translations(language: Optional[str] = None):
         cursor.close()
         connection.close()
     return result
-
-@app.get('/check_translation', operation_id="check_translation")
-def check_translation(translation: Optional[int]):
-    MUST_VERSES_COUNT = 31240
-    connection = create_connection()
-    cursor = connection.cursor(dictionary=True)
-    try:
-        # проверка пустых стихов
-        sql = '''
-            SELECT tb.code AS book_code, tb.book_number, tb.name AS book_name, chapter_number, count(*) AS empty_verses_count
-            FROM translation_verses AS v
-              LEFT JOIN translation_books AS tb ON tb.code = v.translation_book AND tb.translation = %(translation)s
-            WHERE text = ""
-              AND tb.book_number IS NOT NULL
-              AND verse_number_join >= 0
-            GROUP BY tb.code, tb.book_number, tb.name, chapter_number
-        '''
-        cursor.execute(sql, {
-            'translation': translation
-        })
-        result = cursor.fetchall()
-        if result:
-            raise HTTPException(status_code=422, detail={"error_description": "Empty verses", "error_list": result})
-    
-        # проверка количества стихов по главам
-        sql = '''
-			SELECT count(*) AS cc
-			FROM translation_verses
-            WHERE translation_book IN (
-                SELECT code 
-                FROM translation_books
-                WHERE translation = %(translation)s
-            )
-		'''
-        cursor.execute(sql, {
-            'translation': translation
-        })
-        result = cursor.fetchall()
-        verses_count = result[0]['cc']
-        if verses_count != MUST_VERSES_COUNT:
-            sql = '''
-                SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, CONVERT(COUNT(tv.code) + IFNULL(SUM(tv.verse_number_join),0), SIGNED) AS translation_verses_count, s.tolerance_count
-                FROM bible_stat AS s
-                  LEFT JOIN translation_books AS tb ON tb.book_number = s.book_number AND tb.translation = %(translation)s
-                  LEFT JOIN translation_verses AS tv ON tv.translation_book = tb.code AND tv.chapter_number = s.chapter_number
-                WHERE s.book_number != 19 #psalms
-                GROUP BY s.book_number, s.chapter_number, s.verses_count, s.tolerance_count
-                HAVING ABS(must_verses_count - translation_verses_count) > tolerance_count
-                ORDER BY book_number, chapter_number
-            '''
-            cursor.execute(sql, {
-                'translation': translation
-            })
-            result = cursor.fetchall()
-            if result:
-                raise HTTPException(status_code=422, detail={"error_description": "Incorrect verses count in chapter", "error_list": result})
-            
-        # проверяем наличие лишних книг и глав
-            
-    except HTTPException as e:
-        raise e
-    finally:
-        cursor.close()
-        connection.close()
-    return {"result_text": "Everything is OK"}
