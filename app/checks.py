@@ -87,18 +87,37 @@ def check_translation(voice: Optional[int]):
             'voice': voice
         })
         result = cursor.fetchall()
-        verses_count = result[0]['cc']
-        if verses_count != MUST_VERSES_COUNT:
-            raise HTTPException(status_code=422, detail={"error_description": "Voices count (%s) is not correct (need %s)" % (verses_count, MUST_VERSES_COUNT)})
+        autdio_verses_count = result[0]['cc']
+
+        sql = '''
+			SELECT count(*) AS cc
+			FROM translation_verses
+            WHERE translation_book IN (
+                SELECT code 
+                FROM translation_books
+                WHERE translation = (SELECT translation FROM voices WHERE code=%(voice)s)
+            )
+		'''
+        cursor.execute(sql, {
+            'voice': voice
+        })
+        result = cursor.fetchall()
+        text_verses_count = result[0]['cc']
+
+        if autdio_verses_count != text_verses_count:
+            raise HTTPException(status_code=422, detail={"error_description": "Voices count (%s) is not correct (in text %s)" % (autdio_verses_count, text_verses_count)})
         
         # проверка стихов, где end > begin
         sql = '''
-            SELECT tb.book_number, tb.name, tv.chapter_number, tv.verse_number, va.begin, va.end
+            SELECT 
+              tb.book_number, tb.name, tv.chapter_number, tv.verse_number, 
+              CAST(va.begin AS float) AS begin, CAST(va.end AS float) as end, tv.text
             FROM voice_alignments AS va
               LEFT JOIN translation_verses AS tv ON tv.code = va.translation_verse
               LEFT JOIN translation_books AS tb ON tb.code = tv.translation_book
             WHERE va.voice = %(voice)s
               AND va.end <= va.begin
+              AND tv.text != '[]'
             LIMIT 100
         '''
         cursor.execute(sql, {
@@ -107,7 +126,32 @@ def check_translation(voice: Optional[int]):
         result = cursor.fetchall()
         if result:
             raise HTTPException(status_code=422, detail={"error_description": "begin >= end", "error_list": result})
-    
+
+        # проверка следующих стихов - должен быть begin больше предыдущего
+        sql = '''
+            SELECT 
+              tb.book_number, tb.name, tv.chapter_number, tv.verse_number, tv.text, 
+              CAST(va.begin AS float) AS begin, CAST(va.end AS float) AS end, 
+              CAST(next_va.begin AS float) AS next_begin
+            FROM voice_alignments AS va
+              LEFT JOIN translation_verses AS tv ON tv.code = va.translation_verse
+              LEFT JOIN translation_books AS tb ON tb.code = tv.translation_book
+              LEFT JOIN voice_alignments AS next_va ON next_va.code = va.code+1
+              LEFT JOIN translation_verses AS next_tv ON next_tv.code = next_va.translation_verse
+            WHERE va.voice = %(voice)s
+              AND ( next_va.begin < va.end 
+                AND next_tv.translation_book = tv.translation_book
+                AND next_tv.chapter_number = tv.chapter_number 
+              )
+            LIMIT 100
+        '''
+        cursor.execute(sql, {
+            'voice': voice
+        })
+        result = cursor.fetchall()
+        if result:
+            raise HTTPException(status_code=422, detail={"error_description": "next begin < current end", "error_list": result})
+
     except HTTPException as e:
         raise e
     finally:
