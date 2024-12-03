@@ -29,9 +29,18 @@ class VerseWithAlignmentModel(BaseModel):
     number: int
     join: int
     text: str
+    html: str
     begin: float
     end: float
     start_paragraph: bool
+
+class NoteModel(BaseModel):
+    code: int
+    number: int
+    text: str
+    verse_code: int
+    position_text: int
+    position_html: int
 
 class PartsWithAlignmentModel(BaseModel):
     #book_code: int
@@ -40,15 +49,18 @@ class PartsWithAlignmentModel(BaseModel):
     chapter_number: int
     audio_link: str
     verses: list[VerseWithAlignmentModel]
+    notes: list[NoteModel]
 
 class ExcerptWithAlignmentModel(BaseModel):
     title: str
     is_single_chapter: bool
     parts: list[PartsWithAlignmentModel]
 
-# TranslationInfoModel
+
 
 """
+# TranslationInfo
+
 class BookInfoModel(BaseModel):
     
 

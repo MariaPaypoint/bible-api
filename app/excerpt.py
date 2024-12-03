@@ -97,8 +97,8 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
                 SELECT 
-                v.code, v.verse_number, v.verse_number_join, v.text, v.start_paragraph, 
-                a.begin, a.end 
+                    v.code, v.verse_number, v.verse_number_join, v.html, v.text, v.start_paragraph, 
+                    a.begin, a.end 
                 FROM translation_verses AS v
                     LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND voice = %(voice)s
                 WHERE translation_book = (
@@ -107,6 +107,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                         WHERE translation=%(translation)s AND book_number=%(book_number)s
                     )
                     AND chapter_number = %(chapter_number)s
+                ORDER BY v.verse_number
             '''
             params = {
                 'voice': voice,
@@ -156,6 +157,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     code=verse['code'],
                     number=verse['verse_number'],
                     join=verse['verse_number_join'],
+                    html=verse['html'],
                     text=verse['text'],
                     begin=verse['begin'],  # Мы уже проверили, что 'begin' не равен None
                     end=verse['end'] if verse['end'] is not None else 0.0,
@@ -172,11 +174,34 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 book_alias=book_alias
             ) if audio_link else ''
 
+            codes = ", ".join(str(verse.code) for verse in verses)
+            
+            # примечания
+            query = '''
+                SELECT code, note_number, text, translation_verse, position_text, position_html
+                FROM translation_notes
+                WHERE translation_verse IN (%s)
+            ''' % codes
+            cursor.execute(query)
+            notes_results = cursor.fetchall()
+            notes = []
+            for note in notes_results:
+                note_model = NoteModel(
+                    code=note['code'],
+                    number=note['note_number'],
+                    text=note['text'],
+                    verse_code=note['translation_verse'],
+                    position_text=note['position_text'],
+                    position_html=note['position_html']
+                )
+                notes.append(note_model)
+
             part = PartsWithAlignmentModel(
                 book_number=book_number,
                 chapter_number=chapter_number,
                 audio_link=audio_link,
-                verses=verses
+                verses=verses,
+                notes=notes
             )
 
             parts.append(part)

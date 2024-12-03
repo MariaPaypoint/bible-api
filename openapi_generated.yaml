@@ -39,6 +39,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/SimpleErrorResponse'
           description: Unprocessable Entity
+  /check_translation:
+    get:
+      summary: Check Translation
+      operationId: check_translation
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          title: Translation
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /check_voice:
+    get:
+      summary: Check Translation
+      operationId: check_voice
+      parameters:
+      - name: voice
+        in: query
+        required: true
+        schema:
+          title: Voice
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /languages:
     get:
       summary: Get Languages
@@ -74,29 +120,6 @@ paths:
                 items:
                   $ref: '#/components/schemas/TranslationModel'
                 title: Response Get Translations
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /check_translation:
-    get:
-      summary: Check Translation
-      operationId: check_translation
-      parameters:
-      - name: translation
-        in: query
-        required: true
-        schema:
-          title: Translation
-          type: integer
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
         '422':
           description: Validation Error
           content:
@@ -150,6 +173,35 @@ components:
       - name_en
       - name_national
       title: LanguageModel
+    NoteModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        number:
+          type: integer
+          title: Number
+        text:
+          type: string
+          title: Text
+        verse_code:
+          type: integer
+          title: Verse Code
+        position_text:
+          type: integer
+          title: Position Text
+        position_html:
+          type: integer
+          title: Position Html
+      type: object
+      required:
+      - code
+      - number
+      - text
+      - verse_code
+      - position_text
+      - position_html
+      title: NoteModel
     PartsWithAlignmentModel:
       properties:
         book_number:
@@ -166,12 +218,18 @@ components:
             $ref: '#/components/schemas/VerseWithAlignmentModel'
           type: array
           title: Verses
+        notes:
+          items:
+            $ref: '#/components/schemas/NoteModel'
+          type: array
+          title: Notes
       type: object
       required:
       - book_number
       - chapter_number
       - audio_link
       - verses
+      - notes
       title: PartsWithAlignmentModel
     SimpleErrorResponse:
       properties:
@@ -247,6 +305,9 @@ components:
         text:
           type: string
           title: Text
+        html:
+          type: string
+          title: Html
         begin:
           type: number
           title: Begin
@@ -262,6 +323,7 @@ components:
       - number
       - join
       - text
+      - html
       - begin
       - end
       - start_paragraph
