@@ -223,6 +223,11 @@ components:
             $ref: '#/components/schemas/NoteModel'
           type: array
           title: Notes
+        titles:
+          items:
+            $ref: '#/components/schemas/TitleModel'
+          type: array
+          title: Titles
       type: object
       required:
       - book_number
@@ -230,6 +235,7 @@ components:
       - audio_link
       - verses
       - notes
+      - titles
       title: PartsWithAlignmentModel
     SimpleErrorResponse:
       properties:
@@ -240,6 +246,23 @@ components:
       required:
       - detail
       title: SimpleErrorResponse
+    TitleModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        text:
+          type: string
+          title: Text
+        before_verse_code:
+          type: integer
+          title: Before Verse Code
+      type: object
+      required:
+      - code
+      - text
+      - before_verse_code
+      title: TitleModel
     TranslationModel:
       properties:
         code:

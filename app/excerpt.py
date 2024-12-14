@@ -196,12 +196,30 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 )
                 notes.append(note_model)
 
+            # заголовки
+            query = '''
+                SELECT code, text, before_translation_verse
+                FROM translation_titles
+                WHERE before_translation_verse IN (%s)
+            ''' % codes
+            cursor.execute(query)
+            titles_results = cursor.fetchall()
+            titles = []
+            for title in titles_results:
+                title_model = TitleModel(
+                    code=title['code'],
+                    text=title['text'],
+                    before_verse_code=title['before_translation_verse']
+                )
+                titles.append(title_model)
+
             part = PartsWithAlignmentModel(
                 book_number=book_number,
                 chapter_number=chapter_number,
                 audio_link=audio_link,
                 verses=verses,
-                notes=notes
+                notes=notes,
+                titles=titles
             )
 
             parts.append(part)

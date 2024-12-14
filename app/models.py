@@ -42,6 +42,11 @@ class NoteModel(BaseModel):
     position_text: int
     position_html: int
 
+class TitleModel(BaseModel):
+    code: int
+    text: str
+    before_verse_code: int
+
 class PartsWithAlignmentModel(BaseModel):
     #book_code: int
     book_number: int
@@ -50,6 +55,7 @@ class PartsWithAlignmentModel(BaseModel):
     audio_link: str
     verses: list[VerseWithAlignmentModel]
     notes: list[NoteModel]
+    titles: list[TitleModel]
 
 class ExcerptWithAlignmentModel(BaseModel):
     title: str
