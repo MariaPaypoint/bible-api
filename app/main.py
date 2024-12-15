@@ -88,3 +88,51 @@ def get_translations(language: Optional[str] = None):
         cursor.close()
         connection.close()
     return result
+
+@app.get('/translation_info', response_model=TranslationInfoModel, operation_id="get_translation_info")
+def get_translation_info(translation: int):
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        sql = '''
+            SELECT 
+				code        AS translation_code,
+				alias       AS translation_alias,
+				name        AS translation_name,
+				description AS translation_description,
+				language    AS translation_language
+            FROM translations
+            WHERE code = %(translation)s
+        '''
+        cursor.execute(sql, { 'translation': translation })
+
+        result = cursor.fetchone()
+        if not result:
+            raise HTTPException(
+                status_code=422, 
+                detail=f"Translation {translation} not found."
+            )
+		
+        result = {
+            'code'        : translation,
+            'alias'       : result['translation_alias'],
+            'name'        : result['translation_name'],
+            'description' : result['translation_description'],
+            'language'    : result['translation_language']
+        }
+
+        sql = '''
+            SELECT code, book_number, name
+            FROM translation_books
+            WHERE translation = %(translation)s
+        '''
+        cursor.execute(sql, { 'translation': translation })
+        result['books_info'] = cursor.fetchall()
+        
+    except Exception as e:
+        #raise HTTPException(status_code=500, detail=str(e))
+        raise e
+    finally:
+        cursor.close()
+        connection.close()
+    return result

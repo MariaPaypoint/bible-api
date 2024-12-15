@@ -22,6 +22,21 @@ class TranslationModel(BaseModel):
     language: str
     voices: list[VoiceModel]
 
+# TranslationInfo
+
+class BookInfoModel(BaseModel):
+    code: int
+    book_number: int
+    name: str
+
+class TranslationInfoModel(BaseModel):
+    code: int
+    alias: str
+    name: str
+    description: Optional[str] = None
+    language: str
+    books_info: list[BookInfoModel]
+
 # ExcerptWithAlignment
     
 class VerseWithAlignmentModel(BaseModel):
@@ -63,19 +78,3 @@ class ExcerptWithAlignmentModel(BaseModel):
     parts: list[PartsWithAlignmentModel]
 
 
-
-"""
-# TranslationInfo
-
-class BookInfoModel(BaseModel):
-    
-
-class TranslationInfoModel(BaseModel):
-    code: int
-    alias: str
-    name: str
-    description: Optional[str] = None
-    language: str
-    books_info: list[BookInfoModel]
-
-"""
