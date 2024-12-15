@@ -126,8 +126,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /translation_info:
+    get:
+      summary: Get Translation Info
+      operationId: get_translation_info
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Translation
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslationInfoModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    BookInfoModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        book_number:
+          type: integer
+          title: Book Number
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - code
+      - book_number
+      - name
+      title: BookInfoModel
     ExcerptWithAlignmentModel:
       properties:
         title:
@@ -263,6 +304,36 @@ components:
       - text
       - before_verse_code
       title: TitleModel
+    TranslationInfoModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          title: Description
+          type: string
+        language:
+          type: string
+          title: Language
+        books_info:
+          items:
+            $ref: '#/components/schemas/BookInfoModel'
+          type: array
+          title: Books Info
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - language
+      - books_info
+      title: TranslationInfoModel
     TranslationModel:
       properties:
         code:
