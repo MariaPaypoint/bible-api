@@ -163,11 +163,15 @@ components:
         name:
           type: string
           title: Name
+        chapters_count:
+          type: integer
+          title: Chapters Count
       type: object
       required:
       - code
       - book_number
       - name
+      - chapters_count
       title: BookInfoModel
     ExcerptWithAlignmentModel:
       properties:
@@ -248,6 +252,9 @@ components:
         book_number:
           type: integer
           title: Book Number
+        book_name:
+          type: string
+          title: Book Name
         chapter_number:
           type: integer
           title: Chapter Number
@@ -272,6 +279,7 @@ components:
       type: object
       required:
       - book_number
+      - book_name
       - chapter_number
       - audio_link
       - verses

@@ -95,12 +95,7 @@ def get_translation_info(translation: int):
     cursor = connection.cursor(dictionary=True)
     try:
         sql = '''
-            SELECT 
-				code        AS translation_code,
-				alias       AS translation_alias,
-				name        AS translation_name,
-				description AS translation_description,
-				language    AS translation_language
+            SELECT code, alias, name, description, language
             FROM translations
             WHERE code = %(translation)s
         '''
@@ -113,16 +108,10 @@ def get_translation_info(translation: int):
                 detail=f"Translation {translation} not found."
             )
 		
-        result = {
-            'code'        : translation,
-            'alias'       : result['translation_alias'],
-            'name'        : result['translation_name'],
-            'description' : result['translation_description'],
-            'language'    : result['translation_language']
-        }
-
         sql = '''
-            SELECT code, book_number, name
+            SELECT 
+                code, book_number, name,
+                (select count(distinct chapter_number) from translation_verses where translation_book=translation_books.code) as chapters_count
             FROM translation_books
             WHERE translation = %(translation)s
         '''

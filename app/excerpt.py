@@ -58,6 +58,24 @@ def get_book_number(cursor: int, book_alias: str) -> str:
     
     return result['alias']
 
+def get_book_name(cursor: int, translation: int, book_number: str) -> str:
+    query = '''
+        SELECT name 
+        FROM translation_books 
+        WHERE translation = %s
+            AND book_number = %s
+    '''
+    cursor.execute(query, (translation,book_number))
+    result = cursor.fetchone()
+    
+    if not result:
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Book '{book_number}' not found in translation '{translation}'."
+        )
+    
+    return result['name']
+
 # Модель для простого ответа с ошибкой
 class SimpleErrorResponse(BaseModel):
     detail: str
@@ -71,6 +89,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
         voice_info = get_voice_info(cursor, voice, translation) if voice else None
 
         is_single_chapter = True
+        book_name = ''
 
         # Регулярное выражение для парсинга строки
         pattern = r'(?P<book>[a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
@@ -93,6 +112,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             # Получение кода книги на основе alias
             book_number = get_book_number(cursor, book_alias)
+            book_name = get_book_name(cursor, translation, book_number)
 
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
@@ -215,6 +235,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             part = PartsWithAlignmentModel(
                 book_number=book_number,
+                book_name=book_name,
                 chapter_number=chapter_number,
                 audio_link=audio_link,
                 verses=verses,
@@ -224,9 +245,13 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             parts.append(part)
         
-        title = f"Excerpt {excerpt}"
-        if len(parts) > 1:
+        if len(parts) == 1:
+            title = f"{book_name} {chapter_number}"
+        elif len(parts) > 1:
             is_single_chapter = False
+            title = f"Excerpt {excerpt}"
+        else:
+            title = ''
 
         return ExcerptWithAlignmentModel(
             title=title, 

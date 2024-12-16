@@ -28,6 +28,7 @@ class BookInfoModel(BaseModel):
     code: int
     book_number: int
     name: str
+    chapters_count: int
 
 class TranslationInfoModel(BaseModel):
     code: int
@@ -65,6 +66,7 @@ class TitleModel(BaseModel):
 class PartsWithAlignmentModel(BaseModel):
     #book_code: int
     book_number: int
+    book_name: str
     #chapter_code: int
     chapter_number: int
     audio_link: str
