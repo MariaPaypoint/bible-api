@@ -331,8 +331,8 @@ def get_next_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter
         return "%s %s" % (book['alias'], chapter_number+1)
     else:
         current_book_number = int(get_book_number(cursor, book['alias']))
-        if current_book_number == 1:
-            return '' # это первая книга первой главы
+        if current_book_number == 66:
+            return '' # это последняя книга последней главы
         else:
             next_book_alias = get_book_alias(cursor, current_book_number+1)
             return "%s 1" % next_book_alias

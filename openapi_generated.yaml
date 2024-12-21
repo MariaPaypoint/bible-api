@@ -261,6 +261,12 @@ components:
         audio_link:
           type: string
           title: Audio Link
+        prev_excerpt:
+          type: string
+          title: Prev Excerpt
+        next_excerpt:
+          type: string
+          title: Next Excerpt
         verses:
           items:
             $ref: '#/components/schemas/VerseWithAlignmentModel'
@@ -281,6 +287,8 @@ components:
       - book
       - chapter_number
       - audio_link
+      - prev_excerpt
+      - next_excerpt
       - verses
       - notes
       - titles

@@ -110,7 +110,7 @@ def get_translation_info(translation: int):
                 detail=f"Translation {translation} not found."
             )
 		
-        result['books_info'] = get_books_info(translation, cursor)
+        result['books_info'] = get_books_info(cursor, translation)
         
     except Exception as e:
         #raise HTTPException(status_code=500, detail=str(e))
