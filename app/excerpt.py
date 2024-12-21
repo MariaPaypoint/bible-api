@@ -191,7 +191,8 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 chapter_zerofill=str(chapter_number).zfill(2),
                 book=book_number,
                 chapter=chapter_number,
-                book_alias=book_alias
+                book_alias=book_alias,
+                book_alias_upper=book_alias.upper(),
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
