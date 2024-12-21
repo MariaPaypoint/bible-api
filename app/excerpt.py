@@ -92,7 +92,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
         book_name = ''
 
         # Регулярное выражение для парсинга строки
-        pattern = r'(?P<book>[a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
+        pattern = r'(?P<book>[0-9a-z]+) (?P<chapter>\d+)(:(?P<start_verse>\d+)(?:-(?P<end_verse>\d+))?)?'
         
         matches = list(re.finditer(pattern, excerpt))
         

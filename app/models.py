@@ -2,6 +2,8 @@
 from pydantic import BaseModel
 from typing import Optional
 
+# Languages & Translations
+
 class LanguageModel(BaseModel):
     alias: str
     name_en: str
@@ -26,7 +28,8 @@ class TranslationModel(BaseModel):
 
 class BookInfoModel(BaseModel):
     code: int
-    book_number: int
+    number: int
+    alias: str
     name: str
     chapters_count: int
 

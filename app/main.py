@@ -110,9 +110,10 @@ def get_translation_info(translation: int):
 		
         sql = '''
             SELECT 
-                code, book_number, name,
-                (select count(distinct chapter_number) from translation_verses where translation_book=translation_books.code) as chapters_count
-            FROM translation_books
+                code, book_number AS number, name,
+                (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
+                (SELECT name FROM keywords WHERE alias = tb.book_number AND group_alias = "book") AS alias
+            FROM translation_books AS tb
             WHERE translation = %(translation)s
         '''
         cursor.execute(sql, { 'translation': translation })

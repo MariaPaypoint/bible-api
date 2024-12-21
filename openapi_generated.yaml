@@ -157,9 +157,12 @@ components:
         code:
           type: integer
           title: Code
-        book_number:
+        number:
           type: integer
-          title: Book Number
+          title: Number
+        alias:
+          type: string
+          title: Alias
         name:
           type: string
           title: Name
@@ -169,7 +172,8 @@ components:
       type: object
       required:
       - code
-      - book_number
+      - number
+      - alias
       - name
       - chapters_count
       title: BookInfoModel
