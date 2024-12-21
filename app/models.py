@@ -67,12 +67,11 @@ class TitleModel(BaseModel):
     before_verse_code: int
 
 class PartsWithAlignmentModel(BaseModel):
-    #book_code: int
-    book_number: int
-    book_name: str
-    #chapter_code: int
+    book: BookInfoModel
     chapter_number: int
     audio_link: str
+    prev_excerpt: str
+    next_excerpt: str
     verses: list[VerseWithAlignmentModel]
     notes: list[NoteModel]
     titles: list[TitleModel]

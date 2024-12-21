@@ -40,6 +40,7 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
     
     return result
 
+
 def get_book_number(cursor: int, book_alias: str) -> str:
     query = '''
         SELECT alias 
@@ -57,7 +58,25 @@ def get_book_number(cursor: int, book_alias: str) -> str:
         )
     
     return result['alias']
+def get_book_alias(cursor: int, book_number: str) -> str:
+    query = '''
+        SELECT name
+        FROM keywords 
+        WHERE alias = %s
+            AND group_alias = "book"
+    '''
+    cursor.execute(query, (book_number,))
+    result = cursor.fetchone()
+    
+    if not result:
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Book '{book_number}' not found."
+        )
+    
+    return result['name']
 
+"""
 def get_book_name(cursor: int, translation: int, book_number: str) -> str:
     query = '''
         SELECT name 
@@ -75,6 +94,7 @@ def get_book_name(cursor: int, translation: int, book_number: str) -> str:
         )
     
     return result['name']
+"""
 
 # Модель для простого ответа с ошибкой
 class SimpleErrorResponse(BaseModel):
@@ -111,8 +131,9 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             end_verse = match.group('end_verse')
 
             # Получение кода книги на основе alias
-            book_number = get_book_number(cursor, book_alias)
-            book_name = get_book_name(cursor, translation, book_number)
+            book_info = get_books_info(cursor, translation, book_alias)[0]
+            #book_number = book_info['number'] # get_book_number(cursor, book_alias)
+            #book_name = book_info['name'] # get_book_name(cursor, translation, book_number)
 
             # Формирование SQL-запроса для получения данных из БД
             verses_query = '''
@@ -132,7 +153,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             params = {
                 'voice': voice,
                 'translation': translation,
-                'book_number': book_number,
+                'book_number': book_info['number'],
                 'chapter_number': chapter_number,
             }
             if start_verse is not None:
@@ -185,11 +206,12 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 )
                 verses.append(verse_model)
 
-            audio_link = voice_info['link_template'] if voice_info else '' # https://4bbl.ru/data/syn-bondarenko/{book_zerofill}/{chapter_zerofill}.mp3
+            # ссыка на медиафайл
+            audio_link = voice_info['link_template'] if voice_info else '' 
             audio_link = audio_link.format(
-                book_zerofill=str(book_number).zfill(2), 
+                book_zerofill=str(book_info['number']).zfill(2), 
                 chapter_zerofill=str(chapter_number).zfill(2),
-                book=book_number,
+                book=book_info['number'],
                 chapter=chapter_number,
                 book_alias=book_alias,
                 book_alias_upper=book_alias.upper(),
@@ -235,8 +257,9 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 titles.append(title_model)
 
             part = PartsWithAlignmentModel(
-                book_number=book_number,
-                book_name=book_name,
+                book=book_info,
+                prev_excerpt=get_prev_excerpt(cursor, translation, book_info, chapter_number),
+                next_excerpt=get_next_excerpt(cursor, translation, book_info, chapter_number),
                 chapter_number=chapter_number,
                 audio_link=audio_link,
                 verses=verses,
@@ -247,7 +270,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             parts.append(part)
         
         if len(parts) == 1:
-            title = f"{book_name} {chapter_number}"
+            title = f"{book_info['name']} {chapter_number}"
         elif len(parts) > 1:
             is_single_chapter = False
             title = f"Excerpt {excerpt}"
@@ -267,3 +290,51 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
     finally:
         cursor.close()
         connection.close()
+
+
+def get_books_info(cursor: any, translation: int, alias: str=None):
+    params = {}
+    sql = '''
+        SELECT 
+            code, book_number AS number, name,
+            (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
+            (SELECT name FROM keywords WHERE alias = tb.book_number AND group_alias = "book") AS alias
+        FROM translation_books AS tb
+        WHERE translation = %(translation)s
+    '''
+    if alias:
+        sql += ''' AND tb.book_number = (
+            SELECT alias 
+            FROM keywords 
+            WHERE name = %(alias)s
+                AND group_alias = "book") 
+        '''
+    cursor.execute(sql, { 'translation': translation, 'alias': alias })
+    return cursor.fetchall()
+
+def get_prev_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter_number: int):
+    if chapter_number > 1:
+        return "%s %s" % (book['alias'], chapter_number-1)
+    else:
+        current_book_number = int(get_book_number(cursor, book['alias']))
+        if current_book_number == 1:
+            return '' # это первая книга первой главы
+        else:
+            prev_book_alias = get_book_alias(cursor, current_book_number-1)
+            prev_book_info = get_books_info(cursor, translation, prev_book_alias)[0]
+            return "%s %s" % (prev_book_alias, prev_book_info['chapters_count'])
+
+    return ''
+
+def get_next_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter_number: int): 
+    if chapter_number < book['chapters_count']:
+        return "%s %s" % (book['alias'], chapter_number+1)
+    else:
+        current_book_number = int(get_book_number(cursor, book['alias']))
+        if current_book_number == 1:
+            return '' # это первая книга первой главы
+        else:
+            next_book_alias = get_book_alias(cursor, current_book_number+1)
+            return "%s 1" % next_book_alias
+
+    return ''

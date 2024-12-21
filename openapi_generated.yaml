@@ -253,12 +253,8 @@ components:
       title: NoteModel
     PartsWithAlignmentModel:
       properties:
-        book_number:
-          type: integer
-          title: Book Number
-        book_name:
-          type: string
-          title: Book Name
+        book:
+          $ref: '#/components/schemas/BookInfoModel'
         chapter_number:
           type: integer
           title: Chapter Number
@@ -282,8 +278,7 @@ components:
           title: Titles
       type: object
       required:
-      - book_number
-      - book_name
+      - book
       - chapter_number
       - audio_link
       - verses

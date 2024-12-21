@@ -7,6 +7,7 @@ from models import *
 from fastapi.routing import APIRoute
 
 from excerpt import router as excerpt_router
+from excerpt import get_books_info
 from checks import router as checks_router
 
 app = FastAPI()
@@ -93,6 +94,7 @@ def get_translations(language: Optional[str] = None):
 def get_translation_info(translation: int):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
+    result = []
     try:
         sql = '''
             SELECT code, alias, name, description, language
@@ -108,16 +110,7 @@ def get_translation_info(translation: int):
                 detail=f"Translation {translation} not found."
             )
 		
-        sql = '''
-            SELECT 
-                code, book_number AS number, name,
-                (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
-                (SELECT name FROM keywords WHERE alias = tb.book_number AND group_alias = "book") AS alias
-            FROM translation_books AS tb
-            WHERE translation = %(translation)s
-        '''
-        cursor.execute(sql, { 'translation': translation })
-        result['books_info'] = cursor.fetchall()
+        result['books_info'] = get_books_info(translation, cursor)
         
     except Exception as e:
         #raise HTTPException(status_code=500, detail=str(e))
