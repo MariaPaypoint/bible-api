@@ -12,6 +12,7 @@ def get_translation_name(cursor, translation: int) -> str:
         SELECT name
         FROM translations
         WHERE code = %s
+          AND active=1
     '''
     cursor.execute(query, (translation,))
     result = cursor.fetchone()
@@ -29,6 +30,7 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
         FROM voices
         WHERE code = %s
           AND translation = %s
+          AND active=1
     '''
     cursor.execute(query, (voice, translation,))
     result = cursor.fetchone()
@@ -211,10 +213,13 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             audio_link = audio_link.format(
                 book_zerofill=str(book_info['number']).zfill(2), 
                 chapter_zerofill=str(chapter_number).zfill(2),
+                chapter_zerofill3=str(chapter_number).zfill(3),
                 book=book_info['number'],
                 chapter=chapter_number,
                 book_alias=book_alias,
                 book_alias_upper=book_alias.upper(),
+                book_code2=book_info['book_code2'],
+                book_code3=book_info['book_code3'],
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
@@ -296,7 +301,7 @@ def get_books_info(cursor: any, translation: int, alias: str=None):
     params = {}
     sql = '''
         SELECT 
-            code, book_number AS number, name,
+            code, book_number AS number, name, book_code2, book_code3,
             (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
             (SELECT name FROM keywords WHERE alias = tb.book_number AND group_alias = "book") AS alias
         FROM translation_books AS tb

@@ -53,10 +53,11 @@ def get_translations(language: Optional[str] = None):
 				a.description AS audio_description,
 				a.is_music    AS audio_is_music
             FROM translations AS t
-            LEFT JOIN voices  AS a ON a.translation = t.code
+              LEFT JOIN voices  AS a ON a.translation = t.code AND a.active=1
+            WHERE t.active=1
         '''
         if language:
-            sql += " WHERE t.language = %s "
+            sql += " AND t.language = %s "
             params.append(language)
         cursor.execute(sql, params)
         rows = cursor.fetchall()
@@ -100,6 +101,7 @@ def get_translation_info(translation: int):
             SELECT code, alias, name, description, language
             FROM translations
             WHERE code = %(translation)s
+              AND active=1
         '''
         cursor.execute(sql, { 'translation': translation })
 
