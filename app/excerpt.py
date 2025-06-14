@@ -326,8 +326,12 @@ def get_prev_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter
             return '' # это первая книга первой главы
         else:
             prev_book_alias = get_book_alias(cursor, current_book_number-1)
-            prev_book_info = get_books_info(cursor, translation, prev_book_alias)[0]
-            return "%s %s" % (prev_book_alias, prev_book_info['chapters_count'])
+            prev_book_info_list = get_books_info(cursor, translation, prev_book_alias)
+            if prev_book_info_list:
+                prev_book_info = prev_book_info_list[0]
+                return "%s %s" % (prev_book_alias, prev_book_info['chapters_count'])
+            else:
+                return '' # предыдущая книга не найдена
 
     return ''
 
@@ -340,6 +344,10 @@ def get_next_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter
             return '' # это последняя книга последней главы
         else:
             next_book_alias = get_book_alias(cursor, current_book_number+1)
-            return "%s 1" % next_book_alias
+            # Проверяем, что следующая книга существует
+            if next_book_alias:
+                return "%s 1" % next_book_alias
+            else:
+                return '' # следующая книга не найдена
 
     return ''
