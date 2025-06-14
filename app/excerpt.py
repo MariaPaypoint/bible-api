@@ -45,10 +45,9 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
 
 def get_book_number(cursor: int, book_alias: str) -> str:
     query = '''
-        SELECT alias 
-        FROM keywords 
-        WHERE name = %s
-            AND group_alias = "book"
+        SELECT number 
+        FROM bible_books 
+        WHERE code1 = %s 
     '''
     cursor.execute(query, (book_alias,))
     result = cursor.fetchone()
@@ -59,13 +58,12 @@ def get_book_number(cursor: int, book_alias: str) -> str:
             detail=f"Book '{book_alias}' not found."
         )
     
-    return result['alias']
+    return str(result['number'])
 def get_book_alias(cursor: int, book_number: str) -> str:
     query = '''
-        SELECT name
-        FROM keywords 
-        WHERE alias = %s
-            AND group_alias = "book"
+        SELECT code1
+        FROM bible_books 
+        WHERE number = %s
     '''
     cursor.execute(query, (book_number,))
     result = cursor.fetchone()
@@ -76,7 +74,7 @@ def get_book_alias(cursor: int, book_number: str) -> str:
             detail=f"Book '{book_number}' not found."
         )
     
-    return result['name']
+    return result['code1']
 
 """
 def get_book_name(cursor: int, translation: int, book_number: str) -> str:
@@ -218,8 +216,9 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 chapter=chapter_number,
                 book_alias=book_alias,
                 book_alias_upper=book_alias.upper(),
-                book_code2=book_info['book_code2'],
-                book_code3=book_info['book_code3'],
+                book_code2=book_info['code2'] if book_info['code2'] else '',
+                book_code3=book_info['code3'] if book_info['code3'] else '',
+                book_code4=book_info['code4'] if book_info['code4'] else '',
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
@@ -298,23 +297,21 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
 
 def get_books_info(cursor: any, translation: int, alias: str=None):
-    params = {}
+    params = { 'translation': translation }
     sql = '''
         SELECT 
-            code, book_number AS number, name, book_code2, book_code3,
-            (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
-            (SELECT name FROM keywords WHERE alias = tb.book_number AND group_alias = "book") AS alias
+            tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, 
+            (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
         FROM translation_books AS tb
-        WHERE translation = %(translation)s
+        LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
+        WHERE tb.translation = %(translation)s
     '''
     if alias:
-        sql += ''' AND tb.book_number = (
-            SELECT alias 
-            FROM keywords 
-            WHERE name = %(alias)s
-                AND group_alias = "book") 
+        sql += ''' AND (bb.code1 = %(alias)s OR bb.code2 = %(alias)s OR bb.code3 = %(alias)s OR bb.code4 = %(alias)s
+                      OR bb.short_name_en = %(alias)s OR bb.short_name_ru = %(alias)s)
         '''
-    cursor.execute(sql, { 'translation': translation, 'alias': alias })
+        params['alias'] = alias
+    cursor.execute(sql, params)
     return cursor.fetchall()
 
 def get_prev_excerpt(cursor: any, translation: int, book: BookInfoModel, chapter_number: int):
