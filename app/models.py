@@ -66,6 +66,7 @@ class TitleModel(BaseModel):
     text: str
     before_verse_code: int
     metadata: Optional[str] = None
+    reference: Optional[str] = None
 
 class PartsWithAlignmentModel(BaseModel):
     book: BookInfoModel

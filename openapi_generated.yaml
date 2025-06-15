@@ -316,6 +316,9 @@ components:
         metadata:
           title: Metadata
           type: string
+        reference:
+          title: Reference
+          type: string
       type: object
       required:
       - code

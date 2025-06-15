@@ -246,7 +246,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             # заголовки
             query = '''
-                SELECT code, text, before_translation_verse, metadata
+                SELECT code, text, before_translation_verse, metadata, reference
                 FROM translation_titles
                 WHERE before_translation_verse IN (%s)
             ''' % codes
@@ -258,7 +258,8 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     code=title['code'],
                     text=title['text'],
                     before_verse_code=title['before_translation_verse'],
-                    metadata=title['metadata']
+                    metadata=title['metadata'],
+                    reference=title['reference']
                 )
                 titles.append(title_model)
 
