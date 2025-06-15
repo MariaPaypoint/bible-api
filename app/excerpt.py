@@ -219,6 +219,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 book_code2=book_info['code2'] if book_info['code2'] else '',
                 book_code3=book_info['code3'] if book_info['code3'] else '',
                 book_code4=book_info['code4'] if book_info['code4'] else '',
+                book_code5=book_info['code5'] if book_info['code5'] else '',
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
@@ -301,14 +302,14 @@ def get_books_info(cursor: any, translation: int, alias: str=None):
     params = { 'translation': translation }
     sql = '''
         SELECT 
-            tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, 
+            tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, bb.code5, 
             (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
         FROM translation_books AS tb
         LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
         WHERE tb.translation = %(translation)s
     '''
     if alias:
-        sql += ''' AND (bb.code1 = %(alias)s OR bb.code2 = %(alias)s OR bb.code3 = %(alias)s OR bb.code4 = %(alias)s
+        sql += ''' AND (bb.code1 = %(alias)s OR bb.code2 = %(alias)s OR bb.code3 = %(alias)s OR bb.code4 = %(alias)s OR bb.code5 = %(alias)s
                       OR bb.short_name_en = %(alias)s OR bb.short_name_ru = %(alias)s)
         '''
         params['alias'] = alias
