@@ -313,6 +313,9 @@ components:
         before_verse_code:
           type: integer
           title: Before Verse Code
+        metadata:
+          title: Metadata
+          type: string
       type: object
       required:
       - code
