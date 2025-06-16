@@ -57,7 +57,8 @@ class NoteModel(BaseModel):
     code: int
     number: int
     text: str
-    verse_code: int
+    verse_code: Optional[int] = None
+    title_code: Optional[int] = None
     position_text: int
     position_html: int
 

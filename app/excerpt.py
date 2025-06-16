@@ -224,35 +224,16 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
 
             codes = ", ".join(str(verse.code) for verse in verses)
             
-            # примечания
-            query = '''
-                SELECT code, note_number, text, translation_verse, position_text, position_html
-                FROM translation_notes
-                WHERE translation_verse IN (%s)
-            ''' % codes
-            cursor.execute(query)
-            notes_results = cursor.fetchall()
-            notes = []
-            for note in notes_results:
-                note_model = NoteModel(
-                    code=note['code'],
-                    number=note['note_number'],
-                    text=note['text'],
-                    verse_code=note['translation_verse'],
-                    position_text=note['position_text'],
-                    position_html=note['position_html']
-                )
-                notes.append(note_model)
-
             # заголовки
-            query = '''
+            titles_query = '''
                 SELECT code, text, before_translation_verse, metadata, reference
                 FROM translation_titles
                 WHERE before_translation_verse IN (%s)
             ''' % codes
-            cursor.execute(query)
+            cursor.execute(titles_query)
             titles_results = cursor.fetchall()
             titles = []
+            title_codes = []
             for title in titles_results:
                 title_model = TitleModel(
                     code=title['code'],
@@ -262,6 +243,33 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     reference=title['reference']
                 )
                 titles.append(title_model)
+                title_codes.append(str(title['code']))
+
+            # примечания для стихов и заголовков
+            notes_query = '''
+                SELECT code, note_number, text, translation_verse, translation_title, position_text, position_html
+                FROM translation_notes
+                WHERE translation_verse IN (%s)
+            ''' % codes
+            
+            if title_codes:
+                title_codes_str = ", ".join(title_codes)
+                notes_query += ''' OR translation_title IN (%s)''' % title_codes_str
+            
+            cursor.execute(notes_query)
+            notes_results = cursor.fetchall()
+            notes = []
+            for note in notes_results:
+                note_model = NoteModel(
+                    code=note['code'],
+                    number=note['note_number'],
+                    text=note['text'],
+                    verse_code=note['translation_verse'],
+                    title_code=note['translation_title'],
+                    position_text=note['position_text'],
+                    position_html=note['position_html']
+                )
+                notes.append(note_model)
 
             part = PartsWithAlignmentModel(
                 book=book_info,

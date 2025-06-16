@@ -234,8 +234,11 @@ components:
           type: string
           title: Text
         verse_code:
-          type: integer
           title: Verse Code
+          type: integer
+        title_code:
+          title: Title Code
+          type: integer
         position_text:
           type: integer
           title: Position Text
@@ -247,7 +250,6 @@ components:
       - code
       - number
       - text
-      - verse_code
       - position_text
       - position_html
       title: NoteModel
