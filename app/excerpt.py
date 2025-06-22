@@ -212,6 +212,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 book_zerofill=str(book_info['number']).zfill(2), 
                 chapter_zerofill=str(chapter_number).zfill(2),
                 chapter_zerofill3=str(chapter_number).zfill(3),
+                chapter_zerofill_ps3=str(chapter_number).zfill(3 if book_info['number'] == 19 else 2),
                 book=book_info['number'],
                 chapter=chapter_number,
                 book_alias=book_alias,
@@ -220,6 +221,9 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 book_code3=book_info['code3'] if book_info['code3'] else '',
                 book_code4=book_info['code4'] if book_info['code4'] else '',
                 book_code5=book_info['code5'] if book_info['code5'] else '',
+                book_code6=book_info['code6'] if book_info['code6'] else '',
+                book_code7=book_info['code7'] if book_info['code7'] else '',
+                book_code8=book_info['code8'] if book_info['code8'] else '',
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
