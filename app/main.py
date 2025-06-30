@@ -9,11 +9,14 @@ from fastapi.routing import APIRoute
 from excerpt import router as excerpt_router
 from excerpt import get_books_info
 from checks import router as checks_router
+from audio import router as audio_router
 
 app = FastAPI()
 
 app.include_router(excerpt_router)
 app.include_router(checks_router)
+app.include_router(audio_router)
+
 
 @app.get('/languages', response_model=list[LanguageModel], operation_id="get_languages")
 def get_languages():
@@ -121,3 +124,6 @@ def get_translation_info(translation: int):
         cursor.close()
         connection.close()
     return result
+
+
+
