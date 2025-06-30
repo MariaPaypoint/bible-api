@@ -131,7 +131,13 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             end_verse = match.group('end_verse')
 
             # Получение кода книги на основе alias
-            book_info = get_books_info(cursor, translation, book_alias)[0]
+            books_info_list = get_books_info(cursor, translation, book_alias)
+            if not books_info_list:
+                raise HTTPException(
+                    status_code=422, 
+                    detail=f"Book with alias '{book_alias}' not found for translation {translation}."
+                )
+            book_info = books_info_list[0]
             #book_number = book_info['number'] # get_book_number(cursor, book_alias)
             #book_name = book_info['name'] # get_book_name(cursor, translation, book_number)
 
@@ -224,6 +230,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 book_code6=book_info['code6'] if book_info['code6'] else '',
                 book_code7=book_info['code7'] if book_info['code7'] else '',
                 book_code8=book_info['code8'] if book_info['code8'] else '',
+                book_code9=book_info['code9'] if book_info['code9'] else '',
             ) if audio_link else ''
 
             codes = ", ".join(str(verse.code) for verse in verses)
@@ -315,7 +322,7 @@ def get_books_info(cursor: any, translation: int, alias: str=None):
     params = { 'translation': translation }
     sql = '''
         SELECT 
-            tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, bb.code5, 
+            tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, bb.code5, bb.code6, bb.code7, bb.code8, bb.code9,
             (SELECT count(distinct chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
         FROM translation_books AS tb
         LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
