@@ -154,7 +154,6 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                         WHERE translation=%(translation)s AND book_number=%(book_number)s
                     )
                     AND chapter_number = %(chapter_number)s
-                ORDER BY v.verse_number
             '''
             params = {
                 'voice': voice,
@@ -174,6 +173,10 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     verses_query += '''
                         AND verse_number BETWEEN %(start_verse)s AND %(end_verse)s
                     '''
+            
+            verses_query += '''
+                ORDER BY v.verse_number
+            '''
             cursor.execute(verses_query, params)
             verses_results = cursor.fetchall()
 
