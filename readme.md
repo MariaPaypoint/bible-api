@@ -25,9 +25,6 @@ pip install -r requirements.txt
 
 4. Запустите сервер разработки:
 ```bash
-# Убедитесь, что виртуальная среда активирована
-source venv/bin/activate
-
 # Способ 1: через fastapi CLI
 fastapi dev app/main.py --port 8000 --host 0.0.0.0
 

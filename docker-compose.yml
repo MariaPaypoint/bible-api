@@ -6,12 +6,12 @@ services:
     build: .
     #command: sleep 10000000
     ports:
-      - 80:8000
+      - 8000:8000
     volumes:
       - ./:/code/
-    networks:
-      mysql_mysql_net:
+    #networks:
+    #  mysql_mysql_net:
 
-networks:
-  mysql_mysql_net:
-    external: true
+#networks:
+#  mysql_mysql_net:
+#    external: true
