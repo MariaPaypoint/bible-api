@@ -102,3 +102,33 @@ class VoiceUpdateModel(BaseModel):
     is_music: Optional[bool] = None
     active: Optional[bool] = None
 
+# Voice Anomalies
+
+class VoiceAnomalyModel(BaseModel):
+    code: int
+    voice: int
+    translation: int
+    book_number: int
+    chapter_number: int
+    verse_number: Optional[int] = None
+    word: str
+    position_in_verse: Optional[int] = None
+    position_from_end: Optional[int] = None
+    duration: float
+    speed: float
+    ratio: float
+    anomaly_type: Optional[str] = 'fast'
+
+class VoiceAnomaliesResponseModel(BaseModel):
+    items: list[VoiceAnomalyModel]
+    total_count: int
+
+# Translation Books
+
+class TranslationBookModel(BaseModel):
+    code: int
+    book_number: int
+    name: str
+    alias: Optional[str] = None
+    chapters_count: int
+

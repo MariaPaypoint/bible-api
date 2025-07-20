@@ -158,6 +158,40 @@ def get_translation_info(translation: int):
     return result
 
 
+@app.get('/translations/{translation_code}/books', response_model=list[TranslationBookModel], operation_id="get_translation_books", tags=["Translations"])
+def get_translation_books(translation_code: int):
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Check if translation exists
+        cursor.execute("SELECT code FROM translations WHERE code = %s AND active = 1", (translation_code,))
+        translation = cursor.fetchone()
+        if not translation:
+            raise HTTPException(status_code=404, detail=f"Translation {translation_code} not found")
+        
+        # Get books for this translation with alias from bible_books
+        cursor.execute('''
+            SELECT 
+                tb.code, tb.book_number, tb.name, bb.code1 AS alias,
+                (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+            FROM translation_books AS tb
+            LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
+            WHERE tb.translation = %s
+            ORDER BY tb.book_number
+        ''', (translation_code,))
+        
+        books = cursor.fetchall()
+        return books
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        connection.close()
+
+
 @app.put('/translations/{translation_code}', response_model=TranslationModel, operation_id="update_translation", tags=["Translations"])
 def update_translation(translation_code: int, update_data: TranslationUpdateModel):
     connection = create_connection()
@@ -309,3 +343,91 @@ def update_voice(voice_code: int, update_data: VoiceUpdateModel):
         cursor.close()
         connection.close()
 
+
+@app.get('/voices/{voice_code}/anomalies', response_model=VoiceAnomaliesResponseModel, operation_id="get_voice_anomalies", tags=["Voices"])
+def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly_type: Optional[str] = None, book_number: Optional[int] = None, sort_by: Optional[str] = None, sort_order: Optional[str] = None):
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Validate pagination parameters
+        if page < 1:
+            raise HTTPException(status_code=400, detail="Page must be >= 1")
+        if limit < 1 or limit > 1000:
+            raise HTTPException(status_code=400, detail="Limit must be between 1 and 1000")
+        
+        # Validate sort_by parameter
+        valid_sort_options = ["address", "type", "ratio"]
+        if sort_by and sort_by not in valid_sort_options:
+            raise HTTPException(status_code=400, detail=f"Invalid sort_by value. Must be one of: {', '.join(valid_sort_options)}")
+        
+        # Validate sort_order parameter
+        valid_sort_orders = ["asc", "desc"]
+        if sort_order and sort_order.lower() not in valid_sort_orders:
+            raise HTTPException(status_code=400, detail=f"Invalid sort_order value. Must be one of: {', '.join(valid_sort_orders)}")
+        
+        # Check if voice exists
+        cursor.execute("SELECT code FROM voices WHERE code = %s", (voice_code,))
+        voice = cursor.fetchone()
+        if not voice:
+            raise HTTPException(status_code=404, detail=f"Voice {voice_code} not found")
+        
+        # Calculate offset
+        offset = (page - 1) * limit
+        
+        # Build query parameters
+        query_params = [voice_code]
+        where_clause = "WHERE voice = %s"
+        
+        # Add anomaly_type filter if provided
+        if anomaly_type:
+            where_clause += " AND anomaly_type = %s"
+            query_params.append(anomaly_type)
+        
+        # Add book_number filter if provided
+        if book_number:
+            where_clause += " AND book_number = %s"
+            query_params.append(book_number)
+        
+        # Build ORDER BY clause based on sort_by and sort_order parameters
+        sort_direction = "DESC" if sort_order and sort_order.lower() == "desc" else "ASC"
+        
+        if sort_by == "address":
+            order_by = f"ORDER BY book_number {sort_direction}, chapter_number {sort_direction}, verse_number {sort_direction}, position_in_verse {sort_direction}"
+        elif sort_by == "type":
+            order_by = f"ORDER BY anomaly_type {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
+        elif sort_by == "ratio":
+            order_by = f"ORDER BY ratio {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
+        else:
+            # Default sorting by ratio DESC
+            order_by = "ORDER BY ratio DESC, book_number, chapter_number, verse_number, position_in_verse"
+        
+        # Get total count first
+        count_sql = f"SELECT COUNT(*) as total FROM voice_anomalies {where_clause}"
+        cursor.execute(count_sql, query_params)
+        total_count = cursor.fetchone()['total']
+        
+        # Get anomalies for this voice with pagination and filtering
+        query_params.extend([limit, offset])
+        cursor.execute(f'''
+            SELECT code, voice, translation, book_number, chapter_number, 
+                   verse_number, word, position_in_verse, position_from_end,
+                   duration, speed, ratio, anomaly_type
+            FROM voice_anomalies 
+            {where_clause}
+            {order_by}
+            LIMIT %s OFFSET %s
+        ''', query_params)
+        
+        anomalies = cursor.fetchall()
+        return {
+            "items": anomalies,
+            "total_count": total_count
+        }
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        connection.close()
