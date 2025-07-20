@@ -8,7 +8,7 @@ router = APIRouter()
 
 MUST_VERSES_COUNT = 31240
 
-@router.get('/check_translation', operation_id="check_translation")
+@router.get('/check_translation', operation_id="check_translation", tags=["Translations"])
 def check_translation(translation: Optional[int]):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
@@ -72,7 +72,7 @@ def check_translation(translation: Optional[int]):
         connection.close()
     return {"result_text": "Everything is OK"}
 
-@router.get('/check_voice', operation_id="check_voice")
+@router.get('/check_voice', operation_id="check_voice", tags=["Voices"])
 def check_translation(voice: Optional[int]):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)

@@ -13,7 +13,7 @@ from fastapi.responses import Response
 from config import MP3_FILES_PATH
 
 # Создаем роутер
-router = APIRouter(prefix="/audio", tags=["audio"])
+router = APIRouter(prefix="/audio", tags=["Audio"])
 
 
 def parse_range_header(range_header: str, file_size: int):
@@ -146,9 +146,9 @@ def validate_audio_path(translation: str, voice: str, book: str, chapter: str) -
     return Path(MP3_FILES_PATH) / translation / voice / "mp3" / book / f"{chapter}.mp3"
 
 
-@router.get("/{translation}/{voice}/{book}/{chapter}.mp3")
-@router.head("/{translation}/{voice}/{book}/{chapter}.mp3")
-@router.options("/{translation}/{voice}/{book}/{chapter}.mp3")
+@router.get("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
+@router.head("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
+@router.options("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
 def get_audio_file(translation: str, voice: str, book: str, chapter: str, request: Request):
     """
     Возвращает mp3 файл с поддержкой HTTP Range requests для iOS/Android плееров

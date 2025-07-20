@@ -15,6 +15,7 @@ class VoiceModel(BaseModel):
     name: str
     description: Optional[str] = None
     is_music: bool
+    active: bool
 
 class TranslationModel(BaseModel):
     code: int
@@ -22,6 +23,7 @@ class TranslationModel(BaseModel):
     name: str
     description: Optional[str] = None
     language: str
+    active: bool
     voices: list[VoiceModel]
 
 # TranslationInfo
@@ -84,4 +86,19 @@ class ExcerptWithAlignmentModel(BaseModel):
     is_single_chapter: bool
     parts: list[PartsWithAlignmentModel]
 
+# Update Models
+
+class TranslationUpdateModel(BaseModel):
+    alias: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    language: Optional[str] = None
+    active: Optional[bool] = None
+
+class VoiceUpdateModel(BaseModel):
+    alias: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_music: Optional[bool] = None
+    active: Optional[bool] = None
 

@@ -100,7 +100,7 @@ def get_book_name(cursor: int, translation: int, book_number: str) -> str:
 class SimpleErrorResponse(BaseModel):
     detail: str
 
-@router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment", responses={422: {"model": SimpleErrorResponse}})
+@router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment", responses={422: {"model": SimpleErrorResponse}}, tags=["Excerpts"])
 async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Optional[int] = None):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
