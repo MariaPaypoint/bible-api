@@ -51,7 +51,7 @@ def parse_range_header(range_header: str, file_size: int):
 def create_range_response(file_path: Path, range_header: Optional[str]):
     """Создает Response с поддержкой Range requests"""
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Audio file not found")
+        raise HTTPException(status_code=404, detail="Audio file not found: " + str(file_path.absolute()))
     
     file_size = file_path.stat().st_size
     file_stat = file_path.stat()

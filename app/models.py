@@ -16,6 +16,7 @@ class VoiceModel(BaseModel):
     description: Optional[str] = None
     is_music: bool
     active: bool
+    anomalies_count: int = 0
 
 class TranslationModel(BaseModel):
     code: int
@@ -118,6 +119,9 @@ class VoiceAnomalyModel(BaseModel):
     speed: float
     ratio: float
     anomaly_type: Optional[str] = 'fast'
+    verse_start_time: Optional[float] = None
+    verse_end_time: Optional[float] = None
+    verse_text: Optional[str] = None
 
 class VoiceAnomaliesResponseModel(BaseModel):
     items: list[VoiceAnomalyModel]
@@ -131,4 +135,5 @@ class TranslationBookModel(BaseModel):
     name: str
     alias: Optional[str] = None
     chapters_count: int
+    anomalies_count: Optional[int] = None
 

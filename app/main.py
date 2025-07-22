@@ -80,9 +80,15 @@ def get_translations(language: Optional[str] = None, only_active: int = 1):
 				a.name        AS audio_name,
 				a.description AS audio_description,
 				a.is_music    AS audio_is_music,
-				a.active      AS audio_active
+				a.active      AS audio_active,
+				COALESCE(va.anomalies_count, 0) AS audio_anomalies_count
             FROM translations AS t
-              LEFT JOIN voices  AS a ON a.translation = t.code'''
+              LEFT JOIN voices AS a ON a.translation = t.code
+              LEFT JOIN (
+                  SELECT voice, COUNT(*) as anomalies_count
+                  FROM voice_anomalies
+                  GROUP BY voice
+              ) AS va ON va.voice = a.code'''
         
         # Add active filter conditions based on only_active parameter
         if only_active == 1:
@@ -116,6 +122,7 @@ def get_translations(language: Optional[str] = None, only_active: int = 1):
                     'description' : row['audio_description'],
                     'is_music'    : row['audio_is_music'],
                     'active'      : row['audio_active'],
+                    'anomalies_count': row['audio_anomalies_count'],
                 })
         
         result = list(translations.values())
@@ -159,7 +166,7 @@ def get_translation_info(translation: int):
 
 
 @app.get('/translations/{translation_code}/books', response_model=list[TranslationBookModel], operation_id="get_translation_books", tags=["Translations"])
-def get_translation_books(translation_code: int):
+def get_translation_books(translation_code: int, voice_code: Optional[int] = None):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -169,16 +176,40 @@ def get_translation_books(translation_code: int):
         if not translation:
             raise HTTPException(status_code=404, detail=f"Translation {translation_code} not found")
         
+        # If voice_code is provided, check if voice exists
+        if voice_code:
+            cursor.execute("SELECT code FROM voices WHERE code = %s", (voice_code,))
+            voice = cursor.fetchone()
+            if not voice:
+                raise HTTPException(status_code=404, detail=f"Voice {voice_code} not found")
+        
         # Get books for this translation with alias from bible_books
-        cursor.execute('''
-            SELECT 
-                tb.code, tb.book_number, tb.name, bb.code1 AS alias,
-                (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
-            FROM translation_books AS tb
-            LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
-            WHERE tb.translation = %s
-            ORDER BY tb.book_number
-        ''', (translation_code,))
+        if voice_code:
+            # Include anomalies count when voice_code is provided
+            cursor.execute('''
+                SELECT 
+                    tb.code, tb.book_number, tb.name, bb.code1 AS alias,
+                    (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
+                    COALESCE(
+                        (SELECT COUNT(*) FROM voice_anomalies va WHERE va.book_number = tb.book_number AND va.voice = %s), 
+                        0
+                    ) AS anomalies_count
+                FROM translation_books AS tb
+                LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
+                WHERE tb.translation = %s
+                ORDER BY tb.book_number
+            ''', (voice_code, translation_code))
+        else:
+            # Original query without anomalies count
+            cursor.execute('''
+                SELECT 
+                    tb.code, tb.book_number, tb.name, bb.code1 AS alias,
+                    (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+                FROM translation_books AS tb
+                LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
+                WHERE tb.translation = %s
+                ORDER BY tb.book_number
+            ''', (translation_code,))
         
         books = cursor.fetchall()
         return books
@@ -376,47 +407,56 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         
         # Build query parameters
         query_params = [voice_code]
-        where_clause = "WHERE voice = %s"
+        where_clause = "WHERE va.voice = %s"
         
         # Add anomaly_type filter if provided
         if anomaly_type:
-            where_clause += " AND anomaly_type = %s"
+            where_clause += " AND va.anomaly_type = %s"
             query_params.append(anomaly_type)
         
         # Add book_number filter if provided
         if book_number:
-            where_clause += " AND book_number = %s"
+            where_clause += " AND va.book_number = %s"
             query_params.append(book_number)
         
         # Build ORDER BY clause based on sort_by and sort_order parameters
         sort_direction = "DESC" if sort_order and sort_order.lower() == "desc" else "ASC"
         
         if sort_by == "address":
-            order_by = f"ORDER BY book_number {sort_direction}, chapter_number {sort_direction}, verse_number {sort_direction}, position_in_verse {sort_direction}"
+            order_by = f"ORDER BY va.book_number {sort_direction}, chapter_number {sort_direction}, verse_number {sort_direction}, position_in_verse {sort_direction}"
         elif sort_by == "type":
-            order_by = f"ORDER BY anomaly_type {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
+            order_by = f"ORDER BY va.anomaly_type {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
         elif sort_by == "ratio":
-            order_by = f"ORDER BY ratio {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
+            order_by = f"ORDER BY va.ratio {sort_direction}, book_number ASC, chapter_number ASC, verse_number ASC, position_in_verse ASC"
         else:
             # Default sorting by ratio DESC
             order_by = "ORDER BY ratio DESC, book_number, chapter_number, verse_number, position_in_verse"
         
         # Get total count first
-        count_sql = f"SELECT COUNT(*) as total FROM voice_anomalies {where_clause}"
+        count_sql = f"SELECT COUNT(*) as total FROM voice_anomalies AS va {where_clause}"
         cursor.execute(count_sql, query_params)
         total_count = cursor.fetchone()['total']
         
         # Get anomalies for this voice with pagination and filtering
         query_params.extend([limit, offset])
-        cursor.execute(f'''
-            SELECT code, voice, translation, book_number, chapter_number, 
-                   verse_number, word, position_in_verse, position_from_end,
-                   duration, speed, ratio, anomaly_type
-            FROM voice_anomalies 
+        sql = f'''
+            SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
+                   va.verse_number, va.word, va.position_in_verse, va.position_from_end,
+                   va.duration, va.speed, va.ratio, va.anomaly_type,
+                   al.begin AS verse_start_time, al.end AS verse_end_time,
+                   tv.text AS verse_text
+            FROM voice_anomalies AS va
+            LEFT JOIN voice_alignments al ON (
+                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+            )
+            LEFT JOIN translation_verses tv ON (
+                tv.code = va.translation_verse_id
+            )
             {where_clause}
             {order_by}
             LIMIT %s OFFSET %s
-        ''', query_params)
+        '''
+        cursor.execute(sql, query_params)
         
         anomalies = cursor.fetchall()
         return {
