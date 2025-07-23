@@ -22,6 +22,7 @@ pip install -r requirements.txt
 3. Настройте базу данных:
    - Скопируйте `app/config.sample.py` в `app/config.py`
    - Заполните настройки подключения к MySQL
+   - Выполните миграции базы данных: `python migrate.py migrate`
 
 4. Запустите сервер разработки:
 ```bash
@@ -78,6 +79,39 @@ PYTHONPATH=app python -m pytest tests/ -v
 # Или запустите конкретный тест
 PYTHONPATH=app python -m pytest tests/test_excerpt.py::test_excerpt_jhn_3_16_17 -v
 ```
+
+## Управление миграциями базы данных
+
+Проект использует систему миграций для управления схемой базы данных.
+
+### Основные команды
+
+```bash
+# Выполнить все ожидающие миграции
+python migrate.py migrate
+
+# Создать новую миграцию
+python migrate.py create "migration_name"
+
+# Посмотреть статус миграций
+python migrate.py status
+
+# Откатить миграцию (только запись в таблице)
+python migrate.py rollback "migration_file.sql"
+
+# Пометить миграцию как выполненную (для существующих БД)
+python migrate.py mark-executed "migration_file.sql"
+```
+
+### Создание миграций
+
+При создании новой миграции:
+1. Используйте описательное имя: `python migrate.py create "add_user_table"`
+2. Отредактируйте созданный SQL-файл в папке `migrations/`
+3. Каждое SQL-выражение должно заканчиваться точкой с запятой
+4. Выполните миграцию: `python migrate.py migrate`
+
+Подробнее см. `migrations/README.md`
 
 ## Development usefull commands
 
