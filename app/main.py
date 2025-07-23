@@ -488,17 +488,110 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
-        # Check if anomaly exists
-        cursor.execute("SELECT code FROM voice_anomalies WHERE code = %s", (anomaly_code,))
+        # Get anomaly details with alignment data
+        cursor.execute(
+            """
+            SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
+                   va.verse_number, va.word, va.position_in_verse, va.position_from_end,
+                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
+                   va.translation_verse_id,
+                   al.begin AS verse_start_time, al.end AS verse_end_time,
+                   tv.text AS verse_text
+            FROM voice_anomalies AS va
+            LEFT JOIN voice_alignments al ON (
+                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+            )
+            LEFT JOIN translation_verses tv ON (
+                tv.code = va.translation_verse_id
+            )
+            WHERE va.code = %s
+            """,
+            (anomaly_code,)
+        )
+        
         anomaly = cursor.fetchone()
         if not anomaly:
             raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_code} not found")
+        
+        # Handle voice_manual_fixes operations based on status
+        if update_data.status in [AnomalyStatus.DISPROVED, AnomalyStatus.CORRECTED]:
+            # Save to voice_manual_fixes for DISPROVED or CORRECTED status
+            if anomaly['verse_start_time'] is not None and anomaly['verse_end_time'] is not None:
+                # Check if record already exists
+                cursor.execute(
+                    """
+                    SELECT code FROM voice_manual_fixes 
+                    WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s
+                    """,
+                    (anomaly['voice'], anomaly['book_number'], anomaly['chapter_number'], anomaly['verse_number'])
+                )
+                existing_fix = cursor.fetchone()
+                
+                if existing_fix:
+                    # Update existing record
+                    cursor.execute(
+                        """
+                        UPDATE voice_manual_fixes 
+                        SET begin = %s, end = %s, info = %s
+                        WHERE code = %s
+                        """,
+                        (anomaly['verse_start_time'], anomaly['verse_end_time'], 
+                         f"Status: {update_data.status.value}", existing_fix['code'])
+                    )
+                else:
+                    # Insert new record
+                    cursor.execute(
+                        """
+                        INSERT INTO voice_manual_fixes (voice, book_number, chapter_number, verse_number, begin, end, info)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (anomaly['voice'], anomaly['book_number'], anomaly['chapter_number'], 
+                         anomaly['verse_number'], anomaly['verse_start_time'], anomaly['verse_end_time'],
+                         f"Status: {update_data.status.value}")
+                    )
+        
+        elif update_data.status == AnomalyStatus.CONFIRMED:
+            # Check existing manual fixes for CONFIRMED status
+            if anomaly['verse_start_time'] is not None and anomaly['verse_end_time'] is not None:
+                cursor.execute(
+                    """
+                    SELECT code, begin, end FROM voice_manual_fixes 
+                    WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s
+                    """,
+                    (anomaly['voice'], anomaly['book_number'], anomaly['chapter_number'], anomaly['verse_number'])
+                )
+                existing_fix = cursor.fetchone()
+                
+                if existing_fix:
+                    # Check if begin and end match
+                    # Convert both values to float for comparison
+                    existing_begin = float(existing_fix['begin'])
+                    existing_end = float(existing_fix['end'])
+                    current_begin = float(anomaly['verse_start_time'])
+                    current_end = float(anomaly['verse_end_time'])
+                    
+                    if (abs(existing_begin - current_begin) < 0.001 and 
+                        abs(existing_end - current_end) < 0.001):
+                        # Times match, delete the record
+                        cursor.execute(
+                            "DELETE FROM voice_manual_fixes WHERE code = %s",
+                            (existing_fix['code'],)
+                        )
+                    else:
+                        # Times don't match, return error
+                        raise HTTPException(
+                            status_code=422, 
+                            detail=f"Cannot confirm anomaly: manual fix exists with different timing. "
+                                   f"Manual fix: {existing_begin}-{existing_end}, "
+                                   f"Current alignment: {current_begin}-{current_end}"
+                        )
         
         # Update the status
         cursor.execute(
             "UPDATE voice_anomalies SET status = %s WHERE code = %s",
             (update_data.status.value, anomaly_code)
         )
+        
         connection.commit()
         
         # Return updated anomaly
