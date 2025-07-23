@@ -376,7 +376,7 @@ def update_voice(voice_code: int, update_data: VoiceUpdateModel):
 
 
 @app.get('/voices/{voice_code}/anomalies', response_model=VoiceAnomaliesResponseModel, operation_id="get_voice_anomalies", tags=["Voices"])
-def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly_type: Optional[str] = None, book_number: Optional[int] = None, sort_by: Optional[str] = None, sort_order: Optional[str] = None):
+def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly_type: Optional[str] = None, book_number: Optional[int] = None, status: Optional[str] = None, sort_by: Optional[str] = None, sort_order: Optional[str] = None):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -419,6 +419,15 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
             where_clause += " AND va.book_number = %s"
             query_params.append(book_number)
         
+        # Add status filter if provided
+        if status:
+            # Validate status value
+            valid_statuses = ["detected", "confirmed", "disproved", "corrected"]
+            if status not in valid_statuses:
+                raise HTTPException(status_code=400, detail=f"Invalid status value. Must be one of: {', '.join(valid_statuses)}")
+            where_clause += " AND va.status = %s"
+            query_params.append(status)
+        
         # Build ORDER BY clause based on sort_by and sort_order parameters
         sort_direction = "DESC" if sort_order and sort_order.lower() == "desc" else "ASC"
         
@@ -442,7 +451,7 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         sql = f'''
             SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
                    va.verse_number, va.word, va.position_in_verse, va.position_from_end,
-                   va.duration, va.speed, va.ratio, va.anomaly_type,
+                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
                    al.begin AS verse_start_time, al.end AS verse_end_time,
                    tv.text AS verse_text
             FROM voice_anomalies AS va
@@ -471,3 +480,59 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
     finally:
         cursor.close()
         connection.close()
+
+
+@app.patch("/voices/anomalies/{anomaly_code}/status", response_model=VoiceAnomalyModel, operation_id="update_anomaly_status", tags=["Voices"])
+def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateModel):
+    """Update the status of a voice anomaly"""
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Check if anomaly exists
+        cursor.execute("SELECT code FROM voice_anomalies WHERE code = %s", (anomaly_code,))
+        anomaly = cursor.fetchone()
+        if not anomaly:
+            raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_code} not found")
+        
+        # Update the status
+        cursor.execute(
+            "UPDATE voice_anomalies SET status = %s WHERE code = %s",
+            (update_data.status.value, anomaly_code)
+        )
+        connection.commit()
+        
+        # Return updated anomaly
+        cursor.execute(
+            """
+            SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
+                   va.verse_number, va.word, va.position_in_verse, va.position_from_end,
+                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
+                   al.begin AS verse_start_time, al.end AS verse_end_time,
+                   tv.text AS verse_text
+            FROM voice_anomalies AS va
+            LEFT JOIN voice_alignments al ON (
+                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+            )
+            LEFT JOIN translation_verses tv ON (
+                tv.code = va.translation_verse_id
+            )
+            WHERE va.code = %s
+            """,
+            (anomaly_code,)
+        )
+        
+        updated_anomaly = cursor.fetchone()
+        if not updated_anomaly:
+            raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_code} not found after update")
+        
+        return updated_anomaly
+        
+    except Exception as e:
+        connection.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        connection.close()
+

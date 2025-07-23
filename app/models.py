@@ -1,6 +1,7 @@
 # models.py
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
+from enum import Enum
 
 # Languages & Translations
 
@@ -105,6 +106,12 @@ class VoiceUpdateModel(BaseModel):
 
 # Voice Anomalies
 
+class AnomalyStatus(str, Enum):
+    DETECTED = "detected"      # ошибка выявлена (по умолчанию)
+    CONFIRMED = "confirmed"    # ошибка подтверждена
+    DISPROVED = "disproved"    # ошибка опровергнута, не подтверждена проверкой
+    CORRECTED = "corrected"    # выполнена ручная коррекция
+
 class VoiceAnomalyModel(BaseModel):
     code: int
     voice: int
@@ -119,6 +126,7 @@ class VoiceAnomalyModel(BaseModel):
     speed: float
     ratio: float
     anomaly_type: Optional[str] = 'fast'
+    status: AnomalyStatus = AnomalyStatus.DETECTED
     verse_start_time: Optional[float] = None
     verse_end_time: Optional[float] = None
     verse_text: Optional[str] = None
@@ -126,6 +134,9 @@ class VoiceAnomalyModel(BaseModel):
 class VoiceAnomaliesResponseModel(BaseModel):
     items: list[VoiceAnomalyModel]
     total_count: int
+
+class AnomalyStatusUpdateModel(BaseModel):
+    status: AnomalyStatus
 
 # Translation Books
 

@@ -113,6 +113,29 @@ python migrate.py mark-executed "migration_file.sql"
 
 Подробнее см. `migrations/README.md`
 
+## Статусы аномалий озвучки
+
+В системе используется 4 статуса для аномалий озвучки (`voice_anomalies.status`):
+
+- **`detected`** - ошибка выявлена автоматически (статус по умолчанию)
+- **`confirmed`** - ошибка подтверждена при проверке
+- **`disproved`** - ошибка опровергнута, не подтверждена проверкой
+- **`corrected`** - выполнена ручная коррекция
+
+### API методы для работы со статусами:
+
+```bash
+# Получить аномалии с фильтром по статусу
+GET /voices/{voice_code}/anomalies?status=detected
+GET /voices/{voice_code}/anomalies?status=confirmed
+
+# Изменить статус аномалии
+PATCH /voices/anomalies/{anomaly_code}/status
+{
+  "status": "confirmed"
+}
+```
+
 ## Development usefull commands
 
 ### Управление зависимостями
