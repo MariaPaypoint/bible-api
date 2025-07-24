@@ -24,14 +24,14 @@ class TestVoiceManualFixes:
             'translation': 1,
             'book_number': 43,  # John
             'chapter_number': 3,
-            'verse_number': 16,
-            'word': 'test',
+            'verse_number': 16,  # Now NOT NULL
+            'word': 'test',  # Can be None now
             'position_in_verse': 1,
             'position_from_end': 1,
-            'duration': 1.5,
-            'speed': 2.0,
+            'duration': 1.5,  # Can be None now
+            'speed': 2.0,  # Can be None now
             'ratio': 1.33,
-            'anomaly_type': 'fast',
+            'anomaly_type': 'fast',  # Now NOT NULL
             'status': 'detected',
             'translation_verse_id': 1,
             'verse_start_time': 10.5,
@@ -315,6 +315,95 @@ class TestVoiceManualFixes:
         calls = mock_cursor.execute.call_args_list
         delete_calls = [call for call in calls if 'DELETE FROM voice_manual_fixes' in call[0][0]]
         assert len(delete_calls) == 1
+    
+    @patch('app.main.create_connection')
+    def test_update_status_with_null_values_in_anomaly(self, mock_connection):
+        """Test that updating status works with NULL values in nullable fields"""
+        
+        # Setup mock database connection
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connection.return_value = mock_conn
+        mock_conn.cursor.return_value = mock_cursor
+        
+        # Anomaly data with NULL values in nullable fields
+        anomaly_with_nulls = self.test_anomaly_data.copy()
+        anomaly_with_nulls['word'] = None  # Nullable field
+        anomaly_with_nulls['duration'] = None  # Nullable field
+        anomaly_with_nulls['speed'] = None  # Nullable field
+        # verse_number remains NOT NULL
+        # anomaly_type remains NOT NULL
+        
+        mock_cursor.fetchone.side_effect = [
+            anomaly_with_nulls,  # First call - get anomaly data with NULLs
+            None,  # Second call - no existing manual fix
+            anomaly_with_nulls   # Third call - return updated anomaly
+        ]
+        
+        # Make request to update status
+        response = client.patch("/voices/anomalies/1/status", json={
+            "status": "disproved"
+        })
+        
+        # Check response - should succeed even with NULL values
+        assert response.status_code == 200
+        
+        # Verify INSERT was called for voice_manual_fixes
+        calls = mock_cursor.execute.call_args_list
+        insert_calls = [call for call in calls if 'INSERT INTO voice_manual_fixes' in call[0][0]]
+        assert len(insert_calls) == 1
+    
+    @patch('app.main.create_connection')
+    def test_already_resolved_status_cannot_be_set_manually(self, mock_create_connection):
+        """Test that already_resolved status cannot be set manually"""
+        
+        # Setup mock database connection
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_create_connection.return_value = mock_connection
+        mock_connection.cursor.return_value = mock_cursor
+        
+        # Mock anomaly data
+        mock_anomaly = {
+            'code': 1,
+            'voice': 1,
+            'translation': 1,
+            'book_number': 1,
+            'chapter_number': 1,
+            'verse_number': 1,
+            'word': 'test',
+            'position_in_verse': 1,
+            'position_from_end': 1,
+            'duration': 1.5,
+            'speed': 2.0,
+            'ratio': 1.5,
+            'anomaly_type': 'fast',
+            'status': 'detected',
+            'translation_verse_id': 1,
+            'verse_start_time': 10.0,
+            'verse_end_time': 15.0,
+            'verse_text': 'Test verse'
+        }
+        
+        # Configure mock to return anomaly data
+        mock_cursor.fetchone.return_value = mock_anomaly
+        
+        # Make request to update status to already_resolved
+        response = client.patch("/voices/anomalies/1/status", json={
+            "status": "already_resolved"
+        })
+        
+        # Should return 422 Unprocessable Entity
+        assert response.status_code == 422
+        
+        # Check error message
+        data = response.json()
+        assert "Cannot update anomaly status to already resolved" in data["detail"]
+        
+        # Verify that no UPDATE query was executed (since we return error before updating)
+        calls = mock_cursor.execute.call_args_list
+        update_calls = [call for call in calls if 'UPDATE voice_anomalies SET status' in call[0][0]]
+        assert len(update_calls) == 0
 
 
 if __name__ == "__main__":

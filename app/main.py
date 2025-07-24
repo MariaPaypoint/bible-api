@@ -422,7 +422,7 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         # Add status filter if provided
         if status:
             # Validate status value
-            valid_statuses = ["detected", "confirmed", "disproved", "corrected"]
+            valid_statuses = ["detected", "confirmed", "disproved", "corrected", "already_resolved"]
             if status not in valid_statuses:
                 raise HTTPException(status_code=400, detail=f"Invalid status value. Must be one of: {', '.join(valid_statuses)}")
             where_clause += " AND va.status = %s"
@@ -585,6 +585,9 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                                    f"Manual fix: {existing_begin}-{existing_end}, "
                                    f"Current alignment: {current_begin}-{current_end}"
                         )
+        
+        if update_data.status == AnomalyStatus.ALREADY_RESOLVED:
+            raise HTTPException(status_code=422, detail="Cannot update anomaly status to already resolved")
         
         # Update the status
         cursor.execute(

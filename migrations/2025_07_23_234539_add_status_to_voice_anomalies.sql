@@ -7,11 +7,12 @@
 -- confirmed - ошибка подтверждена
 -- disproved - ошибка опровергнута, не подтверждена проверкой
 -- corrected - выполнена ручная коррекция
+-- already_resolved - уже исправлена ранее
 
 ALTER TABLE `voice_anomalies` 
-ADD COLUMN `status` ENUM('detected', 'confirmed', 'disproved', 'corrected') 
+ADD COLUMN `status` ENUM('detected', 'confirmed', 'disproved', 'corrected', 'already_resolved') 
 NOT NULL DEFAULT 'detected' 
-COMMENT 'Status of anomaly: detected, confirmed, disproved, corrected';
+COMMENT 'Status of anomaly: detected, confirmed, disproved, corrected, already_resolved';
 
 -- Add index for better performance when filtering by status
 CREATE INDEX `idx_voice_anomalies_status` ON `voice_anomalies` (`status`);

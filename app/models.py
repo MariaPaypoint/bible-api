@@ -111,6 +111,7 @@ class AnomalyStatus(str, Enum):
     CONFIRMED = "confirmed"    # ошибка подтверждена
     DISPROVED = "disproved"    # ошибка опровергнута, не подтверждена проверкой
     CORRECTED = "corrected"    # выполнена ручная коррекция
+    ALREADY_RESOLVED = "already_resolved" # уже исправлена ранее
 
 class VoiceAnomalyModel(BaseModel):
     code: int
@@ -118,14 +119,14 @@ class VoiceAnomalyModel(BaseModel):
     translation: int
     book_number: int
     chapter_number: int
-    verse_number: Optional[int] = None
-    word: str
+    verse_number: int  # Changed from Optional[int] to int (NOT NULL)
+    word: Optional[str] = None  # Changed from str to Optional[str] (nullable)
     position_in_verse: Optional[int] = None
     position_from_end: Optional[int] = None
-    duration: float
-    speed: float
+    duration: Optional[float] = None  # Changed from float to Optional[float] (nullable)
+    speed: Optional[float] = None  # Changed from float to Optional[float] (nullable)
     ratio: float
-    anomaly_type: Optional[str] = 'fast'
+    anomaly_type: str = 'fast'  # Changed from Optional[str] to str (NOT NULL)
     status: AnomalyStatus = AnomalyStatus.DETECTED
     verse_start_time: Optional[float] = None
     verse_end_time: Optional[float] = None

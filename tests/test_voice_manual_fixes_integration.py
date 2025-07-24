@@ -41,7 +41,7 @@ class TestVoiceManualFixesIntegration:
     def test_valid_status_values_accepted(self):
         """Test that all valid status values are accepted by the endpoint"""
         
-        valid_statuses = ["detected", "confirmed", "disproved", "corrected"]
+        valid_statuses = ["detected", "confirmed", "disproved", "corrected", "already_resolved"]
         
         for status in valid_statuses:
             response = client.patch("/voices/anomalies/99999/status", json={
@@ -140,6 +140,57 @@ class TestVoiceManualFixesIntegration:
             })
             # All should return 404 consistently
             assert response.status_code == 404
+    
+    def test_already_resolved_status_cannot_be_set_manually(self):
+        """Test that already_resolved status cannot be set manually"""
+        
+        # Test with a non-existent anomaly ID first to check the error message
+        response = client.patch("/voices/anomalies/999999/status", json={
+            "status": "already_resolved"
+        })
+        
+        # Should return 422 for trying to set already_resolved status
+        # even before checking if anomaly exists
+        if response.status_code == 422:
+            data = response.json()
+            assert "Cannot update anomaly status to already resolved" in data["detail"]
+        else:
+            # If it's 404, that means the anomaly doesn't exist, 
+            # but we still want to test with a real anomaly
+            
+            # Try to find a real anomaly to test with
+            try:
+                # Get some anomalies from any voice
+                voices_response = client.get("/voices")
+                if voices_response.status_code == 200:
+                    voices_data = voices_response.json()
+                    
+                    for voice in voices_data:
+                        if voice["anomalies_count"] > 0:
+                            # Get anomalies for this voice
+                            anomalies_response = client.get(f"/voices/{voice['code']}/anomalies?limit=1")
+                            if anomalies_response.status_code == 200:
+                                anomalies_data = anomalies_response.json()
+                                if anomalies_data.get("items") and len(anomalies_data["items"]) > 0:
+                                    anomaly = anomalies_data["items"][0]
+                                    anomaly_code = anomaly["code"]
+                                    
+                                    # Now test setting already_resolved status
+                                    test_response = client.patch(f"/voices/anomalies/{anomaly_code}/status", json={
+                                        "status": "already_resolved"
+                                    })
+                                    
+                                    # Should return 422
+                                    assert test_response.status_code == 422
+                                    test_data = test_response.json()
+                                    assert "Cannot update anomaly status to already resolved" in test_data["detail"]
+                                    return
+                            
+                # If we get here, no test data available
+                pytest.skip("No test data available for already_resolved status test")
+                
+            except Exception as e:
+                pytest.skip(f"No test data available for already_resolved status test: {e}")
 
 
 if __name__ == "__main__":

@@ -121,6 +121,7 @@ python migrate.py mark-executed "migration_file.sql"
 - **`confirmed`** - ошибка подтверждена при проверке
 - **`disproved`** - ошибка опровергнута, не подтверждена проверкой
 - **`corrected`** - выполнена ручная коррекция
+- **`already_resolved`** - скорректирована ранее
 
 ### API методы для работы со статусами:
 
