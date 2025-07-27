@@ -604,10 +604,15 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
         if update_data.status == AnomalyStatus.ALREADY_RESOLVED:
             raise HTTPException(status_code=422, detail="Cannot update anomaly status to already resolved")
         
-        # Update the status
+        # Update the status for all anomalies of the same verse
         cursor.execute(
-            "UPDATE voice_anomalies SET status = %s WHERE code = %s",
-            (update_data.status.value, anomaly_code)
+            """
+            UPDATE voice_anomalies 
+            SET status = %s 
+            WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s
+            """,
+            (update_data.status.value, anomaly['voice'], anomaly['book_number'], 
+             anomaly['chapter_number'], anomaly['verse_number'])
         )
         
         connection.commit()
