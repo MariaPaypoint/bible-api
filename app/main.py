@@ -513,10 +513,25 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
         if not anomaly:
             raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_code} not found")
         
+        # Check if trying to change from corrected to confirmed (not allowed)
+        if anomaly['status'] == AnomalyStatus.CORRECTED and (update_data.status == AnomalyStatus.CONFIRMED or update_data.status == AnomalyStatus.DISPROVED):
+            raise HTTPException(
+                status_code=422, 
+                detail="Cannot change status from corrected to confirmed or disproved"
+            )
+        
         # Handle voice_manual_fixes operations based on status
         if update_data.status in [AnomalyStatus.DISPROVED, AnomalyStatus.CORRECTED]:
             # Save to voice_manual_fixes for DISPROVED or CORRECTED status
             if anomaly['verse_start_time'] is not None and anomaly['verse_end_time'] is not None:
+                # For CORRECTED status, use provided begin/end values; for others use original timing
+                if update_data.status == AnomalyStatus.CORRECTED:
+                    begin_time = update_data.begin
+                    end_time = update_data.end
+                else:
+                    begin_time = anomaly['verse_start_time']
+                    end_time = anomaly['verse_end_time']
+                
                 # Check if record already exists
                 cursor.execute(
                     """
@@ -535,7 +550,7 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                         SET begin = %s, end = %s, info = %s
                         WHERE code = %s
                         """,
-                        (anomaly['verse_start_time'], anomaly['verse_end_time'], 
+                        (begin_time, end_time, 
                          f"Status: {update_data.status.value}", existing_fix['code'])
                     )
                 else:
@@ -546,7 +561,7 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                         """,
                         (anomaly['voice'], anomaly['book_number'], anomaly['chapter_number'], 
-                         anomaly['verse_number'], anomaly['verse_start_time'], anomaly['verse_end_time'],
+                         anomaly['verse_number'], begin_time, end_time,
                          f"Status: {update_data.status.value}")
                     )
         

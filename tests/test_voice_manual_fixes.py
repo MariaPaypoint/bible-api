@@ -102,7 +102,9 @@ class TestVoiceManualFixes:
         
         # Make request to update status
         response = client.patch("/voices/anomalies/1/status", json={
-            "status": "corrected"
+            "status": "corrected",
+            "begin": 10.0,
+            "end": 12.5
         })
         
         # Check response

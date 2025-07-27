@@ -44,9 +44,14 @@ class TestVoiceManualFixesIntegration:
         valid_statuses = ["detected", "confirmed", "disproved", "corrected", "already_resolved"]
         
         for status in valid_statuses:
-            response = client.patch("/voices/anomalies/99999/status", json={
-                "status": status
-            })
+            request_data = {"status": status}
+            
+            # For corrected status, add required begin/end fields
+            if status == "corrected":
+                request_data["begin"] = 10.0
+                request_data["end"] = 12.0
+            
+            response = client.patch("/voices/anomalies/99999/status", json=request_data)
             
             # Should return 404 (anomaly not found) not 422 (validation error)
             # This confirms the status value is valid
@@ -135,9 +140,14 @@ class TestVoiceManualFixesIntegration:
         statuses = ["confirmed", "disproved", "corrected", "detected"]
         
         for status in statuses:
-            response = client.patch(f"/voices/anomalies/{anomaly_id}/status", json={
-                "status": status
-            })
+            request_data = {"status": status}
+            
+            # For corrected status, add required begin/end fields
+            if status == "corrected":
+                request_data["begin"] = 10.0
+                request_data["end"] = 12.0
+            
+            response = client.patch(f"/voices/anomalies/{anomaly_id}/status", json=request_data)
             # All should return 404 consistently
             assert response.status_code == 404
     

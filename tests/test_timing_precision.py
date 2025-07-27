@@ -219,19 +219,21 @@ class TestTimingPrecision:
         ]
         
         response = client.patch("/voices/anomalies/1/status", json={
-            "status": "corrected"
+            "status": "corrected",
+            "begin": 0.0,
+            "end": 1.0
         })
         
         assert response.status_code == 200
         
-        # Verify INSERT was called with zero values
+        # Verify INSERT was called with corrected values (not original zero values)
         calls = mock_cursor.execute.call_args_list
         insert_calls = [call for call in calls if 'INSERT INTO voice_manual_fixes' in call[0][0]]
         assert len(insert_calls) == 1
         
         insert_params = insert_calls[0][0][1]
-        assert insert_params[4] == 0.0  # begin
-        assert insert_params[5] == 0.0  # end
+        assert insert_params[4] == 0.0  # begin (from request)
+        assert insert_params[5] == 1.0  # end (from request)
     
     @patch('app.main.create_connection')
     def test_negative_timing_values(self, mock_connection):

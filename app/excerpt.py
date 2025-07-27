@@ -141,19 +141,26 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
             #book_number = book_info['number'] # get_book_number(cursor, book_alias)
             #book_name = book_info['name'] # get_book_name(cursor, translation, book_number)
 
-            # Формирование SQL-запроса для получения данных из БД
+            # Формирование SQL-запроса для получения данных из БД с учетом корректировок
             verses_query = '''
                 SELECT 
-                    v.code, v.verse_number, v.verse_number_join, v.html, v.text, v.start_paragraph, 
-                    a.begin, a.end 
+                    v.code, v.verse_number, v.verse_number_join, v.html, v.text, v.start_paragraph,
+                    COALESCE(vmf.begin, a.begin) as begin,
+                    COALESCE(vmf.end, a.end) as end
                 FROM translation_verses AS v
-                    LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND voice = %(voice)s
+                    LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND a.voice = %(voice)s
+                    LEFT JOIN voice_manual_fixes vmf ON (
+                        vmf.voice = %(voice)s AND 
+                        vmf.book_number = %(book_number)s AND 
+                        vmf.chapter_number = %(chapter_number)s AND 
+                        vmf.verse_number = v.verse_number
+                    )
                 WHERE translation_book = (
                         SELECT code 
                         FROM translation_books 
                         WHERE translation=%(translation)s AND book_number=%(book_number)s
                     )
-                    AND chapter_number = %(chapter_number)s
+                    AND v.chapter_number = %(chapter_number)s
             '''
             params = {
                 'voice': voice,
@@ -167,11 +174,11 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 params['end_verse'] = int(end_verse) if end_verse else int(start_verse)
                 if start_verse == end_verse:
                     verses_query += '''
-                        AND verse_number = %(start_verse)s
+                        AND v.verse_number = %(start_verse)s
                     '''
                 else:
                     verses_query += '''
-                        AND verse_number BETWEEN %(start_verse)s AND %(end_verse)s
+                        AND v.verse_number BETWEEN %(start_verse)s AND %(end_verse)s
                     '''
             
             verses_query += '''
