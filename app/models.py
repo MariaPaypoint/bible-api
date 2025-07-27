@@ -149,3 +149,10 @@ class TranslationBookModel(BaseModel):
     chapters_count: int
     anomalies_count: Optional[int] = None
 
+
+# Audio Error Models
+
+class AudioFileNotFoundError(BaseModel):
+    detail: str
+    alternative_url: Optional[str] = None
+

@@ -11,9 +11,103 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from config import MP3_FILES_PATH
+from database import create_connection
+from models import AudioFileNotFoundError
 
 # Создаем роутер
 router = APIRouter(prefix="/audio", tags=["Audio"])
+
+
+def get_voice_link_template(translation_alias: str, voice_alias: str) -> str:
+    """
+    Получает link_template для голоса из базы данных
+    
+    Args:
+        translation_alias: Алиас перевода (например: syn, rst, bsb)
+        voice_alias: Алиас голоса (например: bondarenko, barry_hays)
+        
+    Returns:
+        Шаблон ссылки на аудиофайл или пустую строку, если не найден
+    """
+    try:
+        connection = create_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        query = '''
+            SELECT v.link_template
+            FROM voices v
+            JOIN translations t ON v.translation = t.code
+            WHERE v.alias = %s 
+              AND t.alias = %s
+              AND v.active = 1
+              AND t.active = 1
+        '''
+        
+        cursor.execute(query, (voice_alias, translation_alias))
+        result = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        return result['link_template'] if result and result['link_template'] else ''
+        
+    except Exception:
+        return ''
+
+
+def format_audio_url(link_template: str, book: str, chapter: str) -> str:
+    """
+    Форматирует URL аудиофайла на основе шаблона
+    
+    Args:
+        link_template: Шаблон ссылки
+        book: Номер книги
+        chapter: Номер главы
+        
+    Returns:
+        Отформатированный URL
+    """
+    if not link_template:
+        return ''
+        
+    try:
+        connection = create_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Получаем информацию о книге
+        book_query = '''
+            SELECT number, code1, code2, code3
+            FROM bible_books
+            WHERE number = %s
+        '''
+        
+        cursor.execute(book_query, (int(book),))
+        book_info = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+        
+        if not book_info:
+            return ''
+            
+        # Форматируем URL по аналогии с excerpt.py
+        formatted_url = link_template.format(
+            book_zerofill=str(book_info['number']).zfill(2),
+            chapter_zerofill=str(int(chapter)).zfill(2),
+            chapter_zerofill3=str(int(chapter)).zfill(3),
+            chapter_zerofill_ps3=str(int(chapter)).zfill(3 if book_info['number'] == 19 else 2),
+            book=book_info['number'],
+            chapter=int(chapter),
+            book_alias=book_info['code1'],
+            book_alias_upper=book_info['code1'].upper(),
+            book_code2=book_info['code2'] if book_info['code2'] else '',
+            book_code3=book_info['code3'] if book_info['code3'] else ''
+        )
+        
+        return formatted_url
+        
+    except Exception:
+        return ''
 
 
 def parse_range_header(range_header: str, file_size: int):
@@ -48,10 +142,19 @@ def parse_range_header(range_header: str, file_size: int):
         return None, None
 
 
-def create_range_response(file_path: Path, range_header: Optional[str]):
+def create_range_response(file_path: Path, range_header: Optional[str], translation: str = '', voice: str = '', book: str = '', chapter: str = ''):
     """Создает Response с поддержкой Range requests"""
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Audio file not found: " + str(file_path.absolute()))
+        # Получаем корректный URL для файла
+        link_template = get_voice_link_template(translation, voice)
+        correct_url = format_audio_url(link_template, book, chapter)
+        
+        error_response = AudioFileNotFoundError(
+            detail=f"Audio file not found on server: {file_path.absolute()}",
+            alternative_url=correct_url if correct_url else None
+        )
+        
+        raise HTTPException(status_code=404, detail=error_response.model_dump())
     
     file_size = file_path.stat().st_size
     file_stat = file_path.stat()
@@ -181,4 +284,4 @@ def get_audio_file(translation: str, voice: str, book: str, chapter: str, reques
     range_header = request.headers.get('range')
     
     # Возвращаем ответ с поддержкой Range requests
-    return create_range_response(file_path, range_header) 
+    return create_range_response(file_path, range_header, translation, voice, book, chapter) 
