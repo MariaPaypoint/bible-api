@@ -165,6 +165,38 @@ class TranslationBookModel(BaseModel):
     anomalies_count: Optional[int] = None
 
 
+# Voice Anomaly Creation
+
+class VoiceAnomalyCreateModel(BaseModel):
+    voice: int
+    translation: int
+    book_number: int
+    chapter_number: int
+    verse_number: int
+    word: Optional[str] = None
+    position_in_verse: Optional[int] = None
+    position_from_end: Optional[int] = None
+    duration: Optional[float] = None
+    speed: Optional[float] = None
+    ratio: float
+    anomaly_type: str = 'manual'
+    status: AnomalyStatus = AnomalyStatus.DETECTED
+    
+    @field_validator('anomaly_type')
+    @classmethod
+    def validate_anomaly_type(cls, v):
+        valid_types = ['fast', 'slow', 'long', 'short', 'manual']
+        if v not in valid_types:
+            raise ValueError(f'Anomaly type must be one of: {", ".join(valid_types)}')
+        return v
+    
+    @field_validator('ratio')
+    @classmethod
+    def validate_ratio(cls, v):
+        if v <= 0:
+            raise ValueError('Ratio must be positive')
+        return v
+
 # Audio Error Models
 
 class AudioFileNotFoundError(BaseModel):

@@ -482,6 +482,100 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         connection.close()
 
 
+@app.post("/voices/anomalies", response_model=VoiceAnomalyModel, operation_id="create_voice_anomaly", tags=["Voices"])
+def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel):
+    """Create a new voice anomaly"""
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Validate that voice exists
+        cursor.execute("SELECT code FROM voices WHERE code = %s", (anomaly_data.voice,))
+        voice = cursor.fetchone()
+        if not voice:
+            raise HTTPException(status_code=404, detail=f"Voice {anomaly_data.voice} not found")
+        
+        # Validate that translation exists
+        cursor.execute("SELECT code FROM translations WHERE code = %s", (anomaly_data.translation,))
+        translation = cursor.fetchone()
+        if not translation:
+            raise HTTPException(status_code=404, detail=f"Translation {anomaly_data.translation} not found")
+        
+        # Get translation_verse_id
+        cursor.execute(
+            """
+            SELECT tv.code FROM translation_verses tv
+            JOIN translation_books tb ON tv.translation_book = tb.code
+            WHERE tb.translation = %s AND tb.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
+            """,
+            (anomaly_data.translation, anomaly_data.book_number, anomaly_data.chapter_number, anomaly_data.verse_number)
+        )
+        verse = cursor.fetchone()
+        if not verse:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Verse not found: translation {anomaly_data.translation}, book {anomaly_data.book_number}, chapter {anomaly_data.chapter_number}, verse {anomaly_data.verse_number}"
+            )
+        
+        translation_verse_id = verse['code']
+        
+        # Insert new anomaly
+        cursor.execute(
+            """
+            INSERT INTO voice_anomalies 
+            (voice, translation, book_number, chapter_number, verse_number, translation_verse_id,
+             word, position_in_verse, position_from_end, duration, speed, ratio, anomaly_type, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                anomaly_data.voice, anomaly_data.translation, anomaly_data.book_number,
+                anomaly_data.chapter_number, anomaly_data.verse_number, translation_verse_id,
+                anomaly_data.word, anomaly_data.position_in_verse, anomaly_data.position_from_end,
+                anomaly_data.duration, anomaly_data.speed, anomaly_data.ratio,
+                anomaly_data.anomaly_type, anomaly_data.status.value
+            )
+        )
+        
+        # Get the created anomaly ID
+        anomaly_id = cursor.lastrowid
+        
+        connection.commit()
+        
+        # Fetch and return the created anomaly with all fields
+        cursor.execute(
+            """
+            SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
+                   va.verse_number, va.word, va.position_in_verse, va.position_from_end,
+                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
+                   al.begin AS verse_start_time, al.end AS verse_end_time,
+                   tv.text AS verse_text
+            FROM voice_anomalies AS va
+            LEFT JOIN voice_alignments al ON (
+                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+            )
+            LEFT JOIN translation_verses tv ON (
+                tv.code = va.translation_verse_id
+            )
+            WHERE va.code = %s
+            """,
+            (anomaly_id,)
+        )
+        
+        created_anomaly = cursor.fetchone()
+        if not created_anomaly:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created anomaly")
+        
+        return created_anomaly
+        
+    except Exception as e:
+        connection.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        connection.close()
+
+
 @app.patch("/voices/anomalies/{anomaly_code}/status", response_model=VoiceAnomalyModel, operation_id="update_anomaly_status", tags=["Voices"])
 def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateModel):
     """Update the status of a voice anomaly"""

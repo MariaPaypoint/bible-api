@@ -75,6 +75,65 @@ GET /voices/1/anomalies?status=detected
 }
 ```
 
+#### POST /voices/anomalies
+
+Создание новой аномалии озвучки.
+
+**Тело запроса:**
+```json
+{
+  "voice": 1,
+  "translation": 1,
+  "book_number": 1,
+  "chapter_number": 1,
+  "verse_number": 1,
+  "word": "слово",           // опционально
+  "position_in_verse": 5,    // опционально
+  "position_from_end": 3,    // опционально
+  "duration": 1.5,           // опционально
+  "speed": 2.0,              // опционально
+  "ratio": 1.8,              // обязательно, должно быть > 0
+  "anomaly_type": "manual",  // по умолчанию "manual"
+  "status": "detected"       // по умолчанию "detected"
+}
+```
+
+**Типы аномалий:**
+- `fast` - быстрое произношение
+- `slow` - медленное произношение  
+- `long` - длинная пауза
+- `short` - короткая пауза
+- `manual` - добавлена вручную (по умолчанию)
+
+**Правила валидации:**
+- Поле `ratio` обязательно и должно быть положительным числом
+- Поля `voice`, `translation`, `book_number`, `chapter_number`, `verse_number` обязательны
+- Система проверяет существование указанного голоса, перевода и стиха
+- Тип аномалии должен быть одним из допустимых значений
+
+**Пример успешного ответа:**
+```json
+{
+  "code": 123,
+  "voice": 1,
+  "translation": 1,
+  "book_number": 1,
+  "chapter_number": 1,
+  "verse_number": 1,
+  "word": "слово",
+  "position_in_verse": 5,
+  "position_from_end": 3,
+  "duration": 1.5,
+  "speed": 2.0,
+  "ratio": 1.8,
+  "anomaly_type": "manual",
+  "status": "detected",
+  "verse_start_time": 10.0,
+  "verse_end_time": 12.0,
+  "verse_text": "Текст стиха"
+}
+```
+
 ### Логика работы с voice_manual_fixes
 
 При обновлении статуса аномалии система автоматически управляет таблицей `voice_manual_fixes`:
