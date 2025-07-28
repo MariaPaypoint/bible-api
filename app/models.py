@@ -128,8 +128,6 @@ class VoiceAnomalyModel(BaseModel):
     ratio: float
     anomaly_type: str = 'fast'  # Changed from Optional[str] to str (NOT NULL)
     status: AnomalyStatus = AnomalyStatus.DETECTED
-    verse_start_time: Optional[float] = None
-    verse_end_time: Optional[float] = None
     verse_text: Optional[str] = None
 
 class VoiceAnomaliesResponseModel(BaseModel):

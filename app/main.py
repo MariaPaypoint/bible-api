@@ -452,12 +452,8 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
             SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
                    va.verse_number, va.word, va.position_in_verse, va.position_from_end,
                    va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
-                   al.begin AS verse_start_time, al.end AS verse_end_time,
                    tv.text AS verse_text
             FROM voice_anomalies AS va
-            LEFT JOIN voice_alignments al ON (
-                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
-            )
             LEFT JOIN translation_verses tv ON (
                 tv.code = va.translation_verse_id
             )
