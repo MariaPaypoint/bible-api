@@ -3,6 +3,9 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 from database import create_connection
 import re
+import os
+from pathlib import Path
+from config import MP3_FILES_PATH
 from models import *
 
 router = APIRouter()
@@ -26,11 +29,13 @@ def get_translation_name(cursor, translation: int) -> str:
     
 def get_voice_info(cursor, voice: int, translation: int) -> dict:
     query = '''
-        SELECT name, link_template
-        FROM voices
-        WHERE code = %s
-          AND translation = %s
-          AND active=1
+        SELECT v.name, v.link_template, v.alias as voice_alias, t.alias as translation_alias
+        FROM voices v
+        JOIN translations t ON v.translation = t.code
+        WHERE v.code = %s
+          AND v.translation = %s
+          AND v.active=1
+          AND t.active=1
     '''
     cursor.execute(query, (voice, translation,))
     result = cursor.fetchone()
@@ -41,6 +46,28 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
         )
     
     return result
+
+
+def check_audio_file_exists(translation_alias: str, voice_alias: str, book_number: int, chapter_number: int) -> bool:
+    """
+    Проверяет существование аудиофайла в папке audio
+    
+    Args:
+        translation_alias: Алиас перевода (например: syn, rst, bsb)
+        voice_alias: Алиас голоса (например: bondarenko, barry_hays)
+        book_number: Номер книги
+        chapter_number: Номер главы
+        
+    Returns:
+        True если файл существует, False если нет
+    """
+    # Формируем путь к файлу аналогично validate_audio_path из audio.py
+    book_str = str(book_number).zfill(2)
+    chapter_str = str(chapter_number).zfill(2)
+    
+    file_path = Path(MP3_FILES_PATH) / translation_alias / voice_alias / "mp3" / book_str / f"{chapter_str}.mp3"
+    
+    return file_path.exists()
 
 
 def get_book_number(cursor: int, book_alias: str) -> str:
@@ -223,25 +250,20 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                 verses.append(verse_model)
 
             # ссыка на медиафайл
-            audio_link = voice_info['link_template'] if voice_info else '' 
-            audio_link = audio_link.format(
-                book_zerofill=str(book_info['number']).zfill(2), 
-                chapter_zerofill=str(chapter_number).zfill(2),
-                chapter_zerofill3=str(chapter_number).zfill(3),
-                chapter_zerofill_ps3=str(chapter_number).zfill(3 if book_info['number'] == 19 else 2),
-                book=book_info['number'],
-                chapter=chapter_number,
-                book_alias=book_alias,
-                book_alias_upper=book_alias.upper(),
-                book_code2=book_info['code2'] if book_info['code2'] else '',
-                book_code3=book_info['code3'] if book_info['code3'] else '',
-                book_code4=book_info['code4'] if book_info['code4'] else '',
-                book_code5=book_info['code5'] if book_info['code5'] else '',
-                book_code6=book_info['code6'] if book_info['code6'] else '',
-                book_code7=book_info['code7'] if book_info['code7'] else '',
-                book_code8=book_info['code8'] if book_info['code8'] else '',
-                book_code9=book_info['code9'] if book_info['code9'] else '',
-            ) if audio_link else ''
+            audio_link = ''
+            if voice_info:
+                # Проверяем, существует ли аудиофайл в папке audio
+                if check_audio_file_exists(
+                    voice_info['translation_alias'], 
+                    voice_info['voice_alias'], 
+                    book_info['number'], 
+                    chapter_number
+                ):
+                    # Если файл существует, формируем ссылку на внутренний эндпоинт
+                    book_str = str(book_info['number']).zfill(2)
+                    chapter_str = str(chapter_number).zfill(2)
+                    audio_link = f"http://replica-vm-maria:8000/audio/{voice_info['translation_alias']}/{voice_info['voice_alias']}/{book_str}/{chapter_str}.mp3"
+                # Если файла нет, audio_link остается пустым
 
             codes = ", ".join(str(verse.code) for verse in verses)
             
