@@ -546,7 +546,10 @@ def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel):
                    tv.text AS verse_text
             FROM voice_anomalies AS va
             LEFT JOIN voice_alignments al ON (
-                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+                al.voice = va.voice AND 
+                al.book_number = va.book_number AND 
+                al.chapter_number = va.chapter_number AND 
+                al.verse_number = va.verse_number
             )
             LEFT JOIN translation_verses tv ON (
                 tv.code = va.translation_verse_id
@@ -589,7 +592,10 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                    tv.text AS verse_text
             FROM voice_anomalies AS va
             LEFT JOIN voice_alignments al ON (
-                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+                al.voice = va.voice AND 
+                al.book_number = va.book_number AND 
+                al.chapter_number = va.chapter_number AND 
+                al.verse_number = va.verse_number
             )
             LEFT JOIN translation_verses tv ON (
                 tv.code = va.translation_verse_id
@@ -717,7 +723,10 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                    tv.text AS verse_text
             FROM voice_anomalies AS va
             LEFT JOIN voice_alignments al ON (
-                al.translation_verse = va.translation_verse_id AND al.voice = va.voice
+                al.voice = va.voice AND 
+                al.book_number = va.book_number AND 
+                al.chapter_number = va.chapter_number AND 
+                al.verse_number = va.verse_number
             )
             LEFT JOIN translation_verses tv ON (
                 tv.code = va.translation_verse_id

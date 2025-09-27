@@ -110,11 +110,19 @@ def check_translation(voice: Optional[int]):
         # проверка стихов, где end > begin
         sql = '''
             SELECT 
-              tb.book_number, tb.name, tv.chapter_number, tv.verse_number, 
+              va.book_number, tb.name, va.chapter_number, va.verse_number, 
               CAST(va.begin AS float) AS begin, CAST(va.end AS float) as end, tv.text
             FROM voice_alignments AS va
-              LEFT JOIN translation_verses AS tv ON tv.code = va.translation_verse
-              LEFT JOIN translation_books AS tb ON tb.code = tv.translation_book
+              LEFT JOIN translation_verses AS tv ON (
+                tv.verse_number = va.verse_number AND 
+                tv.chapter_number = va.chapter_number AND
+                tv.translation_book IN (
+                  SELECT tb_inner.code 
+                  FROM translation_books tb_inner 
+                  WHERE tb_inner.book_number = va.book_number
+                )
+              )
+              LEFT JOIN translation_books AS tb ON tb.book_number = va.book_number
             WHERE va.voice = %(voice)s
               AND va.end <= va.begin
               AND tv.text != '[]'
@@ -130,18 +138,25 @@ def check_translation(voice: Optional[int]):
         # проверка следующих стихов - должен быть begin больше предыдущего
         sql = '''
             SELECT 
-              tb.book_number, tb.name, tv.chapter_number, tv.verse_number, tv.text, 
+              va.book_number, tb.name, va.chapter_number, va.verse_number, tv.text, 
               CAST(va.begin AS float) AS begin, CAST(va.end AS float) AS end, 
               CAST(next_va.begin AS float) AS next_begin
             FROM voice_alignments AS va
-              LEFT JOIN translation_verses AS tv ON tv.code = va.translation_verse
-              LEFT JOIN translation_books AS tb ON tb.code = tv.translation_book
+              LEFT JOIN translation_verses AS tv ON (
+                tv.verse_number = va.verse_number AND 
+                tv.chapter_number = va.chapter_number AND
+                tv.translation_book IN (
+                  SELECT tb_inner.code 
+                  FROM translation_books tb_inner 
+                  WHERE tb_inner.book_number = va.book_number
+                )
+              )
+              LEFT JOIN translation_books AS tb ON tb.book_number = va.book_number
               LEFT JOIN voice_alignments AS next_va ON next_va.code = va.code+1
-              LEFT JOIN translation_verses AS next_tv ON next_tv.code = next_va.translation_verse
             WHERE va.voice = %(voice)s
               AND ( next_va.begin < va.end 
-                AND next_tv.translation_book = tv.translation_book
-                AND next_tv.chapter_number = tv.chapter_number 
+                AND next_va.book_number = va.book_number
+                AND next_va.chapter_number = va.chapter_number 
               )
             LIMIT 100
         '''

@@ -168,14 +168,80 @@ GET /excerpt_with_alignment?translation=16&excerpt=jhn 3:16-17&voice=1
 
 В ответе поля `begin` и `end` для каждого стиха будут содержать актуальные временные метки с учетом всех корректировок.
 
-## Запуск тестов
+## Установка и запуск
+
+### Установка зависимостей
 
 ```bash
-# Активировать виртуальную среду
-source venv/bin/activate
+# Установить основные зависимости
+pip install mysql-connector-python fastapi uvicorn pydantic
 
-# Установить зависимости
-pip install -r requirements.txt
+# Для разработки (опционально, может потребовать Python 3.12 или ниже)
+pip install pytest requests
+
+# Полная установка (может не работать с Python 3.13)
+# pip install -r requirements.txt
+```
+
+### Настройка базы данных
+
+1. Скопируйте файл конфигурации:
+```bash
+cp app/config.sample.py app/config.py
+```
+
+2. Отредактируйте `app/config.py` с вашими настройками базы данных.
+
+3. Выполните миграции:
+```bash
+python migrations/migration_manager.py migrate
+```
+
+**Примечание**: Миграции для рефакторинга `voice_alignments` уже выполнены:
+- ✅ Добавлены поля `book_number`, `chapter_number`, `verse_number`
+- ✅ Созданы индексы для оптимизации производительности
+- ✅ Заполнены данные из связанных таблиц
+- ✅ Обновлен код для использования новых полей
+
+### Запуск сервера
+
+#### Вариант 1: Через Docker (рекомендуется)
+```bash
+# Запуск в фоновом режиме
+docker compose up -d
+
+# Проверить статус
+docker compose ps
+
+# Просмотр логов
+docker logs bible-api
+
+# Остановить
+docker compose down
+```
+Сервер будет доступен на: http://localhost:8000
+
+#### Вариант 2: Локальный запуск
+```bash
+# Запуск в режиме разработки
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+```
+Сервер будет доступен на: http://localhost:8001
+
+#### Проверка работы
+```bash
+# Swagger UI (Docker)
+curl http://localhost:8000/docs
+
+# Swagger UI (локальный запуск)
+curl http://localhost:8001/docs
+```
+
+### Запуск тестов
+
+```bash
+# Установить pytest если еще не установлен
+pip install pytest
 
 # Запустить тесты
 PYTHONPATH=/root/cep/bible-api/app python -m pytest tests/ -v
@@ -187,16 +253,19 @@ PYTHONPATH=/root/cep/bible-api/app python -m pytest tests/ -v
 
 ```bash
 # Выполнить все ожидающие миграции
-python migrate.py migrate
+python migrations/migration_manager.py migrate
 
 # Создать новую миграцию
-python migrate.py create "migration_name"
+python migrations/migration_manager.py create --name "migration_name"
 
 # Показать статус миграций
-python migrate.py status
+python migrations/migration_manager.py status
 
-# Откатить миграцию
-python migrate.py rollback "migration_file.sql"
+# Откатить миграцию (только отметить как не выполненную)
+python migrations/migration_manager.py rollback --file "migration_file.sql"
+
+# Отметить миграцию как выполненную без запуска
+python migrations/migration_manager.py mark-executed --file "migration_file.sql"
 ```
 
 Подробнее см. [migrations/README.md](migrations/README.md)

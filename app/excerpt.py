@@ -5,7 +5,7 @@ from database import create_connection
 import re
 import os
 from pathlib import Path
-from config import MP3_FILES_PATH
+from config import MP3_FILES_PATH, AUDIO_BASE_URL
 from models import *
 
 router = APIRouter()
@@ -175,7 +175,12 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     COALESCE(vmf.begin, a.begin) as begin,
                     COALESCE(vmf.end, a.end) as end
                 FROM translation_verses AS v
-                    LEFT JOIN voice_alignments a ON a.translation_verse = v.code AND a.voice = %(voice)s
+                    LEFT JOIN voice_alignments a ON (
+                        a.voice = %(voice)s AND 
+                        a.book_number = %(book_number)s AND 
+                        a.chapter_number = %(chapter_number)s AND 
+                        a.verse_number = v.verse_number
+                    )
                     LEFT JOIN voice_manual_fixes vmf ON (
                         vmf.voice = %(voice)s AND 
                         vmf.book_number = %(book_number)s AND 
@@ -262,7 +267,7 @@ async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Opti
                     # Если файл существует, формируем ссылку на внутренний эндпоинт
                     book_str = str(book_info['number']).zfill(2)
                     chapter_str = str(chapter_number).zfill(2)
-                    audio_link = f"http://replica-vm-maria:8000/audio/{voice_info['translation_alias']}/{voice_info['voice_alias']}/{book_str}/{chapter_str}.mp3"
+                    audio_link = f"{AUDIO_BASE_URL}/audio/{voice_info['translation_alias']}/{voice_info['voice_alias']}/{book_str}/{chapter_str}.mp3"
                 # Если файла нет, audio_link остается пустым
 
             codes = ", ".join(str(verse.code) for verse in verses)

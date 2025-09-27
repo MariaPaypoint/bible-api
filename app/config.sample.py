@@ -6,3 +6,6 @@ DB_NAME     = "your_database_name"
 
 # Path to MP3 files storage
 MP3_FILES_PATH = "/path/to/your/mp3/files"
+
+# Base URL for audio files
+AUDIO_BASE_URL = "http://your-server:8000"
