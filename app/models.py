@@ -201,3 +201,53 @@ class AudioFileNotFoundError(BaseModel):
     detail: str
     alternative_url: Optional[str] = None
 
+# Voice Manual Fixes Models
+
+class VoiceManualFixCreateModel(BaseModel):
+    voice: int
+    book_number: int
+    chapter_number: int
+    verse_number: int
+    begin: float
+    end: float
+    info: Optional[str] = None
+    
+    @field_validator('book_number')
+    @classmethod
+    def validate_book_number(cls, v):
+        if v < 1 or v > 66:
+            raise ValueError('Book number must be between 1 and 66')
+        return v
+    
+    @field_validator('chapter_number')
+    @classmethod
+    def validate_chapter_number(cls, v):
+        if v < 1:
+            raise ValueError('Chapter number must be greater than 0')
+        return v
+    
+    @field_validator('verse_number')
+    @classmethod
+    def validate_verse_number(cls, v):
+        if v < 1:
+            raise ValueError('Verse number must be greater than 0')
+        return v
+    
+    @model_validator(mode='after')
+    def validate_timing(self):
+        if self.begin >= self.end:
+            raise ValueError('Begin time must be less than end time')
+        if self.begin < 0:
+            raise ValueError('Begin time must be non-negative')
+        return self
+
+class VoiceManualFixModel(BaseModel):
+    code: int
+    voice: int
+    book_number: int
+    chapter_number: int
+    verse_number: int
+    begin: float
+    end: float
+    info: Optional[str] = None
+

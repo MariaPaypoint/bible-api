@@ -751,3 +751,98 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
         cursor.close()
         connection.close()
 
+
+@app.post("/voices/manual-fixes", response_model=VoiceManualFixModel, operation_id="create_voice_manual_fix", tags=["Voices"])
+def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel):
+    """
+    Создать ручную корректировку времени для стиха
+    
+    Позволяет задать корректное время начала и окончания стиха без привязки к аномалии.
+    Если корректировка для данного стиха уже существует, она будет обновлена.
+    """
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Проверяем, что голос существует
+        cursor.execute("SELECT code FROM voices WHERE code = %s", (fix_data.voice,))
+        voice = cursor.fetchone()
+        if not voice:
+            raise HTTPException(status_code=404, detail=f"Voice {fix_data.voice} not found")
+        
+        # Проверяем, что стих существует
+        cursor.execute(
+            """
+            SELECT tv.code FROM translation_verses tv
+            JOIN translation_books tb ON tv.translation_book = tb.code
+            JOIN voices v ON v.translation = tb.translation
+            WHERE v.code = %s AND tb.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
+            """,
+            (fix_data.voice, fix_data.book_number, fix_data.chapter_number, fix_data.verse_number)
+        )
+        verse = cursor.fetchone()
+        if not verse:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Verse not found: voice {fix_data.voice}, book {fix_data.book_number}, chapter {fix_data.chapter_number}, verse {fix_data.verse_number}"
+            )
+        
+        # Проверяем, существует ли уже корректировка для этого стиха
+        cursor.execute(
+            """
+            SELECT code FROM voice_manual_fixes 
+            WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s
+            """,
+            (fix_data.voice, fix_data.book_number, fix_data.chapter_number, fix_data.verse_number)
+        )
+        existing_fix = cursor.fetchone()
+        
+        if existing_fix:
+            # Обновляем существующую корректировку
+            cursor.execute(
+                """
+                UPDATE voice_manual_fixes 
+                SET begin = %s, end = %s, info = %s
+                WHERE code = %s
+                """,
+                (fix_data.begin, fix_data.end, fix_data.info, existing_fix['code'])
+            )
+            fix_id = existing_fix['code']
+        else:
+            # Создаем новую корректировку
+            cursor.execute(
+                """
+                INSERT INTO voice_manual_fixes (voice, book_number, chapter_number, verse_number, begin, end, info)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (fix_data.voice, fix_data.book_number, fix_data.chapter_number, 
+                 fix_data.verse_number, fix_data.begin, fix_data.end, fix_data.info)
+            )
+            fix_id = cursor.lastrowid
+        
+        connection.commit()
+        
+        # Возвращаем созданную/обновленную корректировку
+        cursor.execute(
+            """
+            SELECT code, voice, book_number, chapter_number, verse_number, begin, end, info
+            FROM voice_manual_fixes
+            WHERE code = %s
+            """,
+            (fix_id,)
+        )
+        
+        result = cursor.fetchone()
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to retrieve manual fix")
+        
+        return result
+        
+    except Exception as e:
+        connection.rollback()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        connection.close()
+
