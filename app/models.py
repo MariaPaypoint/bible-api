@@ -161,6 +161,7 @@ class TranslationBookModel(BaseModel):
     alias: Optional[str] = None
     chapters_count: int
     anomalies_count: Optional[int] = None
+    anomalies_open_count: Optional[int] = None
 
 
 # Voice Anomaly Creation

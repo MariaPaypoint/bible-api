@@ -193,12 +193,19 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
                     COALESCE(
                         (SELECT COUNT(*) FROM voice_anomalies va WHERE va.book_number = tb.book_number AND va.voice = %s), 
                         0
-                    ) AS anomalies_count
+                    ) AS anomalies_count,
+                    COALESCE(
+                        (SELECT COUNT(*) FROM voice_anomalies va2 
+                         WHERE va2.book_number = tb.book_number 
+                           AND va2.voice = %s 
+                           AND va2.status IN ('detected','confirmed')
+                        ), 0
+                    ) AS anomalies_open_count
                 FROM translation_books AS tb
                 LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
                 WHERE tb.translation = %s
                 ORDER BY tb.book_number
-            ''', (voice_code, translation_code))
+            ''', (voice_code, voice_code, translation_code))
         else:
             # Original query without anomalies count
             cursor.execute('''
