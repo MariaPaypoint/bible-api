@@ -1,6 +1,7 @@
 from typing import Union, Optional
+from datetime import timedelta
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status, APIRouter
 from database import create_connection
 from models import *
 
@@ -10,9 +11,18 @@ from excerpt import router as excerpt_router
 from excerpt import get_books_info
 from checks import router as checks_router
 from audio import router as audio_router
+from auth import (
+    Token, LoginRequest, authenticate_user, create_access_token,
+    RequireAPIKey, RequireJWT
+)
+from config import JWT_EXPIRE_HOURS
 
 # Tags metadata for controlling order in Swagger UI
 tags_metadata = [
+    {
+        "name": "Auth",
+        "description": "Авторизация и аутентификация",
+    },
     {
         "name": "Languages",
         "description": "",
@@ -37,13 +47,45 @@ tags_metadata = [
 
 app = FastAPI(openapi_tags=tags_metadata)
 
-app.include_router(excerpt_router)
-app.include_router(checks_router)
-app.include_router(audio_router)
+# Создаем основной роутер с префиксом /api
+api_router = APIRouter(prefix="/api")
+
+# Подключаем роутеры к основному роутеру
+api_router.include_router(excerpt_router)
+api_router.include_router(checks_router)
+api_router.include_router(audio_router)
 
 
-@app.get('/languages', response_model=list[LanguageModel], operation_id="get_languages", tags=["Languages"])
-def get_languages():
+@api_router.post('/auth/login', response_model=Token, operation_id="login", tags=["Auth"])
+def login(credentials: LoginRequest):
+    """
+    Получить JWT токен для доступа к административным эндпоинтам
+    
+    Токен действителен 24 часа и должен передаваться в заголовке:
+    Authorization: Bearer <token>
+    """
+    if not authenticate_user(credentials.username, credentials.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(hours=JWT_EXPIRE_HOURS)
+    access_token = create_access_token(
+        data={"sub": credentials.username}, 
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": JWT_EXPIRE_HOURS * 3600  # в секундах
+    }
+
+
+@api_router.get('/languages', response_model=list[LanguageModel], operation_id="get_languages", tags=["Languages"])
+def get_languages(api_key: bool = RequireAPIKey):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -60,8 +102,8 @@ def get_languages():
     return result
 
 
-@app.get('/translations', response_model=list[TranslationModel], operation_id="get_translations", tags=["Translations"])
-def get_translations(language: Optional[str] = None, only_active: int = 1):
+@api_router.get('/translations', response_model=list[TranslationModel], operation_id="get_translations", tags=["Translations"])
+def get_translations(language: Optional[str] = None, only_active: int = 1, api_key: bool = RequireAPIKey):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -133,8 +175,8 @@ def get_translations(language: Optional[str] = None, only_active: int = 1):
         connection.close()
     return result
 
-@app.get('/translation_info', response_model=TranslationInfoModel, operation_id="get_translation_info", tags=["Translations"])
-def get_translation_info(translation: int):
+@api_router.get('/translation_info', response_model=TranslationInfoModel, operation_id="get_translation_info", tags=["Translations"])
+def get_translation_info(translation: int, api_key: bool = RequireAPIKey):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     result = []
@@ -165,8 +207,8 @@ def get_translation_info(translation: int):
     return result
 
 
-@app.get('/translations/{translation_code}/books', response_model=list[TranslationBookModel], operation_id="get_translation_books", tags=["Translations"])
-def get_translation_books(translation_code: int, voice_code: Optional[int] = None):
+@api_router.get('/translations/{translation_code}/books', response_model=list[TranslationBookModel], operation_id="get_translation_books", tags=["Translations"])
+def get_translation_books(translation_code: int, voice_code: Optional[int] = None, api_key: bool = RequireAPIKey):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -230,8 +272,8 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
         connection.close()
 
 
-@app.put('/translations/{translation_code}', response_model=TranslationModel, operation_id="update_translation", tags=["Translations"])
-def update_translation(translation_code: int, update_data: TranslationUpdateModel):
+@api_router.put('/translations/{translation_code}', response_model=TranslationModel, operation_id="update_translation", tags=["Translations"])
+def update_translation(translation_code: int, update_data: TranslationUpdateModel, username: str = RequireJWT):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -319,8 +361,8 @@ def update_translation(translation_code: int, update_data: TranslationUpdateMode
         connection.close()
 
 
-@app.put('/voices/{voice_code}', response_model=VoiceModel, operation_id="update_voice", tags=["Voices"])
-def update_voice(voice_code: int, update_data: VoiceUpdateModel):
+@api_router.put('/voices/{voice_code}', response_model=VoiceModel, operation_id="update_voice", tags=["Voices"])
+def update_voice(voice_code: int, update_data: VoiceUpdateModel, username: str = RequireJWT):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -382,8 +424,8 @@ def update_voice(voice_code: int, update_data: VoiceUpdateModel):
         connection.close()
 
 
-@app.get('/voices/{voice_code}/anomalies', response_model=VoiceAnomaliesResponseModel, operation_id="get_voice_anomalies", tags=["Voices"])
-def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly_type: Optional[str] = None, book_number: Optional[int] = None, status: Optional[str] = None, sort_by: Optional[str] = None, sort_order: Optional[str] = None):
+@api_router.get('/voices/{voice_code}/anomalies', response_model=VoiceAnomaliesResponseModel, operation_id="get_voice_anomalies", tags=["Voices"])
+def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly_type: Optional[str] = None, book_number: Optional[int] = None, status: Optional[str] = None, sort_by: Optional[str] = None, sort_order: Optional[str] = None, username: str = RequireJWT):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
@@ -485,8 +527,8 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         connection.close()
 
 
-@app.post("/voices/anomalies", response_model=VoiceAnomalyModel, operation_id="create_voice_anomaly", tags=["Voices"])
-def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel):
+@api_router.post("/voices/anomalies", response_model=VoiceAnomalyModel, operation_id="create_voice_anomaly", tags=["Voices"])
+def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel, username: str = RequireJWT):
     """Create a new voice anomaly"""
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
@@ -582,8 +624,8 @@ def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel):
         connection.close()
 
 
-@app.patch("/voices/anomalies/{anomaly_code}/status", response_model=VoiceAnomalyModel, operation_id="update_anomaly_status", tags=["Voices"])
-def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateModel):
+@api_router.patch("/voices/anomalies/{anomaly_code}/status", response_model=VoiceAnomalyModel, operation_id="update_anomaly_status", tags=["Voices"])
+def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateModel, username: str = RequireJWT):
     """Update the status of a voice anomaly"""
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
@@ -759,8 +801,8 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
         connection.close()
 
 
-@app.post("/voices/manual-fixes", response_model=VoiceManualFixModel, operation_id="create_voice_manual_fix", tags=["Voices"])
-def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel):
+@api_router.post("/voices/manual-fixes", response_model=VoiceManualFixModel, operation_id="create_voice_manual_fix", tags=["Voices"])
+def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str = RequireJWT):
     """
     Создать ручную корректировку времени для стиха
     
@@ -853,3 +895,6 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel):
         cursor.close()
         connection.close()
 
+
+# Подключаем основной роутер к приложению
+app.include_router(api_router)

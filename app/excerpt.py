@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from config import MP3_FILES_PATH, AUDIO_BASE_URL
 from models import *
+from auth import RequireAPIKey
 
 router = APIRouter()
 
@@ -295,7 +296,7 @@ class SimpleErrorResponse(BaseModel):
     detail: str
 
 @router.get('/chapter_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_chapter_with_alignment", responses={422: {"model": SimpleErrorResponse}}, tags=["Excerpts"])
-async def get_chapter_with_alignment(translation: int, book_number: int, chapter_number: int, voice: Optional[int] = None):
+async def get_chapter_with_alignment(translation: int, book_number: int, chapter_number: int, voice: Optional[int] = None, api_key: bool = RequireAPIKey):
     """
     Получить главу с выравниванием по номеру книги и главы
     
@@ -380,7 +381,7 @@ async def get_chapter_with_alignment(translation: int, book_number: int, chapter
 
 
 @router.get('/excerpt_with_alignment', response_model=ExcerptWithAlignmentModel, operation_id="get_excerpt_with_alignment", responses={422: {"model": SimpleErrorResponse}}, tags=["Excerpts"])
-async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Optional[int] = None):
+async def get_excerpt_with_alignment(translation: int, excerpt: str, voice: Optional[int] = None, api_key: bool = RequireAPIKey):
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:

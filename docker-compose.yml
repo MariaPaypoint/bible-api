@@ -7,6 +7,7 @@ services:
     #command: sleep 10000000
     ports:
       - 8000:8000
+      - 80:8000
     volumes:
       - ./:/code/
     restart: always

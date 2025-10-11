@@ -2,19 +2,17 @@
 Роутер для работы с аудиофайлами
 """
 
-import os
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+import os
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import Response
-
-from config import MP3_FILES_PATH
+from config import MP3_FILES_PATH, AUDIO_BASE_URL
+from auth import RequireAPIKey, verify_api_key_query
 from database import create_connection
-from models import AudioFileNotFoundError
 
-# Создаем роутер
 router = APIRouter(prefix="/audio", tags=["Audio"])
 
 
@@ -252,7 +250,14 @@ def validate_audio_path(translation: str, voice: str, book: str, chapter: str) -
 @router.get("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
 @router.head("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
 @router.options("/{translation}/{voice}/{book}/{chapter}.mp3", tags=["Audio"])
-def get_audio_file(translation: str, voice: str, book: str, chapter: str, request: Request):
+def get_audio_file(
+    translation: str, 
+    voice: str, 
+    book: str, 
+    chapter: str, 
+    request: Request,
+    api_key: Optional[str] = None
+):
     """
     Возвращает mp3 файл с поддержкой HTTP Range requests для iOS/Android плееров
     
@@ -262,6 +267,7 @@ def get_audio_file(translation: str, voice: str, book: str, chapter: str, reques
         book: Номер книги (например: 01, 19, 40)
         chapter: Номер главы (например: 01, 14, 150)
         request: HTTP запрос
+        api_key: API ключ (query параметр или заголовок X-API-Key)
         
     Returns:
         Аудиофайл или его часть с корректными заголовками
@@ -272,10 +278,19 @@ def get_audio_file(translation: str, voice: str, book: str, chapter: str, reques
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-                "Access-Control-Allow-Headers": "Range, Content-Type, If-Range",
+                "Access-Control-Allow-Headers": "Range, Content-Type, If-Range, X-API-Key",
                 "Accept-Ranges": "bytes"
             }
         )
+    
+    # Проверяем API ключ: сначала из query параметра, потом из заголовка
+    if api_key:
+        # API ключ передан как query параметр
+        verify_api_key_query(api_key)
+    else:
+        # Проверяем заголовок X-API-Key
+        header_key = request.headers.get('x-api-key')
+        verify_api_key_query(header_key)
     
     # Валидируем и строим путь к файлу
     file_path = validate_audio_path(translation, voice, book, chapter)

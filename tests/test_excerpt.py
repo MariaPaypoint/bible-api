@@ -11,14 +11,14 @@ from app.main import app
 
 client = TestClient(app)
 
-def test_excerpt_jhn_3_16_17():
+def test_excerpt_jhn_3_16_17(api_headers):
     """Test requesting John 3:16-17 with translation=16"""
     
     # Make request to the API
     response = client.get("/excerpt_with_alignment", params={
         "translation": 16,
         "excerpt": "jhn 3:16-17"
-    })
+    }, headers=api_headers)
     
     # Check status code
     assert response.status_code == 200

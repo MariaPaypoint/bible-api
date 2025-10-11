@@ -122,7 +122,7 @@ class TestAnomalyCorrection:
         assert model.end is None
     
     @patch('app.main.create_connection')
-    def test_update_status_to_corrected_saves_custom_timing(self, mock_connection):
+    def test_update_status_to_corrected_saves_custom_timing(self, mock_connection, admin_headers):
         """Test that updating status to CORRECTED saves custom begin/end times"""
         
         # Setup mock database connection
@@ -165,7 +165,7 @@ class TestAnomalyCorrection:
         assert "Status: corrected" in insert_params[6]  # info field
     
     @patch('app.main.create_connection')
-    def test_update_status_to_corrected_updates_existing_fix(self, mock_connection):
+    def test_update_status_to_corrected_updates_existing_fix(self, mock_connection, admin_headers):
         """Test that updating status to CORRECTED updates existing manual fix with new timing"""
         
         # Setup mock database connection

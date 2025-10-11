@@ -1,0 +1,1451 @@
+openapi: 3.1.0
+info:
+  title: FastAPI
+  version: 0.1.0
+paths:
+  /api/chapter_with_alignment:
+    get:
+      tags:
+      - Excerpts
+      summary: Get Chapter With Alignment
+      description: "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0433\u043B\u0430\
+        \u0432\u0443 \u0441 \u0432\u044B\u0440\u0430\u0432\u043D\u0438\u0432\u0430\
+        \u043D\u0438\u0435\u043C \u043F\u043E \u043D\u043E\u043C\u0435\u0440\u0443\
+        \ \u043A\u043D\u0438\u0433\u0438 \u0438 \u0433\u043B\u0430\u0432\u044B\n\n\
+        Args:\n    translation: \u041A\u043E\u0434 \u043F\u0435\u0440\u0435\u0432\u043E\
+        \u0434\u0430\n    book_number: \u041D\u043E\u043C\u0435\u0440 \u043A\u043D\
+        \u0438\u0433\u0438 (1-66)\n    chapter_number: \u041D\u043E\u043C\u0435\u0440\
+        \ \u0433\u043B\u0430\u0432\u044B\n    voice: \u041A\u043E\u0434 \u0433\u043E\
+        \u043B\u043E\u0441\u0430 (\u043E\u043F\u0446\u0438\u043E\u043D\u0430\u043B\
+        \u044C\u043D\u043E)\n\nReturns:\n    ExcerptWithAlignmentModel: \u0414\u0430\
+        \u043D\u043D\u044B\u0435 \u0433\u043B\u0430\u0432\u044B \u0441 \u0432\u044B\
+        \u0440\u0430\u0432\u043D\u0438\u0432\u0430\u043D\u0438\u0435\u043C"
+      operationId: get_chapter_with_alignment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Translation
+      - name: book_number
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Book Number
+      - name: chapter_number
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Chapter Number
+      - name: voice
+        in: query
+        required: false
+        schema:
+          title: Voice
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExcerptWithAlignmentModel'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+          description: Unprocessable Content
+  /api/excerpt_with_alignment:
+    get:
+      tags:
+      - Excerpts
+      summary: Get Excerpt With Alignment
+      operationId: get_excerpt_with_alignment
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Translation
+      - name: excerpt
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Excerpt
+      - name: voice
+        in: query
+        required: false
+        schema:
+          title: Voice
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExcerptWithAlignmentModel'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+          description: Unprocessable Content
+  /api/check_translation:
+    get:
+      tags:
+      - Translations
+      summary: Check Translation
+      operationId: check_translation
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          title: Translation
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/check_voice:
+    get:
+      tags:
+      - Voices
+      summary: Check Voice
+      operationId: check_voice
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: voice
+        in: query
+        required: true
+        schema:
+          title: Voice
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/audio/{translation}/{voice}/{book}/{chapter}.mp3:
+    options:
+      tags:
+      - Audio
+      - Audio
+      summary: Get Audio File
+      description: "\u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 mp3\
+        \ \u0444\u0430\u0439\u043B \u0441 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\
+        \u043A\u043E\u0439 HTTP Range requests \u0434\u043B\u044F iOS/Android \u043F\
+        \u043B\u0435\u0435\u0440\u043E\u0432\n\nArgs:\n    translation: \u041A\u043E\
+        \u0434 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0430 (\u043D\u0430\u043F\
+        \u0440\u0438\u043C\u0435\u0440: syn, rst, bsb)\n    voice: \u041A\u043E\u0434\
+        \ \u0433\u043E\u043B\u043E\u0441\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: bondarenko, barry_hays)  \n    book: \u041D\u043E\u043C\u0435\
+        \u0440 \u043A\u043D\u0438\u0433\u0438 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: 01, 19, 40)\n    chapter: \u041D\u043E\u043C\u0435\u0440 \u0433\
+        \u043B\u0430\u0432\u044B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440\
+        : 01, 14, 150)\n    request: HTTP \u0437\u0430\u043F\u0440\u043E\u0441\n \
+        \   api_key: API \u043A\u043B\u044E\u0447 (query \u043F\u0430\u0440\u0430\u043C\
+        \u0435\u0442\u0440 \u0438\u043B\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\
+        \u0432\u043E\u043A X-API-Key)\n    \nReturns:\n    \u0410\u0443\u0434\u0438\
+        \u043E\u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0435\u0433\u043E \u0447\
+        \u0430\u0441\u0442\u044C \u0441 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\
+        \u043D\u044B\u043C\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430\
+        \u043C\u0438"
+      operationId: get_audio_file_api_audio__translation___voice___book___chapter__mp3_options
+      parameters:
+      - name: translation
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Translation
+      - name: voice
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Voice
+      - name: book
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book
+      - name: chapter
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Chapter
+      - name: api_key
+        in: query
+        required: false
+        schema:
+          title: Api Key
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    head:
+      tags:
+      - Audio
+      - Audio
+      summary: Get Audio File
+      description: "\u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 mp3\
+        \ \u0444\u0430\u0439\u043B \u0441 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\
+        \u043A\u043E\u0439 HTTP Range requests \u0434\u043B\u044F iOS/Android \u043F\
+        \u043B\u0435\u0435\u0440\u043E\u0432\n\nArgs:\n    translation: \u041A\u043E\
+        \u0434 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0430 (\u043D\u0430\u043F\
+        \u0440\u0438\u043C\u0435\u0440: syn, rst, bsb)\n    voice: \u041A\u043E\u0434\
+        \ \u0433\u043E\u043B\u043E\u0441\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: bondarenko, barry_hays)  \n    book: \u041D\u043E\u043C\u0435\
+        \u0440 \u043A\u043D\u0438\u0433\u0438 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: 01, 19, 40)\n    chapter: \u041D\u043E\u043C\u0435\u0440 \u0433\
+        \u043B\u0430\u0432\u044B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440\
+        : 01, 14, 150)\n    request: HTTP \u0437\u0430\u043F\u0440\u043E\u0441\n \
+        \   api_key: API \u043A\u043B\u044E\u0447 (query \u043F\u0430\u0440\u0430\u043C\
+        \u0435\u0442\u0440 \u0438\u043B\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\
+        \u0432\u043E\u043A X-API-Key)\n    \nReturns:\n    \u0410\u0443\u0434\u0438\
+        \u043E\u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0435\u0433\u043E \u0447\
+        \u0430\u0441\u0442\u044C \u0441 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\
+        \u043D\u044B\u043C\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430\
+        \u043C\u0438"
+      operationId: get_audio_file_api_audio__translation___voice___book___chapter__mp3_head
+      parameters:
+      - name: translation
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Translation
+      - name: voice
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Voice
+      - name: book
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book
+      - name: chapter
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Chapter
+      - name: api_key
+        in: query
+        required: false
+        schema:
+          title: Api Key
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Audio
+      - Audio
+      summary: Get Audio File
+      description: "\u0412\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 mp3\
+        \ \u0444\u0430\u0439\u043B \u0441 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\
+        \u043A\u043E\u0439 HTTP Range requests \u0434\u043B\u044F iOS/Android \u043F\
+        \u043B\u0435\u0435\u0440\u043E\u0432\n\nArgs:\n    translation: \u041A\u043E\
+        \u0434 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0430 (\u043D\u0430\u043F\
+        \u0440\u0438\u043C\u0435\u0440: syn, rst, bsb)\n    voice: \u041A\u043E\u0434\
+        \ \u0433\u043E\u043B\u043E\u0441\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: bondarenko, barry_hays)  \n    book: \u041D\u043E\u043C\u0435\
+        \u0440 \u043A\u043D\u0438\u0433\u0438 (\u043D\u0430\u043F\u0440\u0438\u043C\
+        \u0435\u0440: 01, 19, 40)\n    chapter: \u041D\u043E\u043C\u0435\u0440 \u0433\
+        \u043B\u0430\u0432\u044B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440\
+        : 01, 14, 150)\n    request: HTTP \u0437\u0430\u043F\u0440\u043E\u0441\n \
+        \   api_key: API \u043A\u043B\u044E\u0447 (query \u043F\u0430\u0440\u0430\u043C\
+        \u0435\u0442\u0440 \u0438\u043B\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\
+        \u0432\u043E\u043A X-API-Key)\n    \nReturns:\n    \u0410\u0443\u0434\u0438\
+        \u043E\u0444\u0430\u0439\u043B \u0438\u043B\u0438 \u0435\u0433\u043E \u0447\
+        \u0430\u0441\u0442\u044C \u0441 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\
+        \u043D\u044B\u043C\u0438 \u0437\u0430\u0433\u043E\u043B\u043E\u0432\u043A\u0430\
+        \u043C\u0438"
+      operationId: get_audio_file_api_audio__translation___voice___book___chapter__mp3_get
+      parameters:
+      - name: translation
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Translation
+      - name: voice
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Voice
+      - name: book
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book
+      - name: chapter
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Chapter
+      - name: api_key
+        in: query
+        required: false
+        schema:
+          title: Api Key
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Login
+      description: "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C JWT \u0442\u043E\
+        \u043A\u0435\u043D \u0434\u043B\u044F \u0434\u043E\u0441\u0442\u0443\u043F\
+        \u0430 \u043A \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\
+        \u0442\u0438\u0432\u043D\u044B\u043C \u044D\u043D\u0434\u043F\u043E\u0438\u043D\
+        \u0442\u0430\u043C\n\n\u0422\u043E\u043A\u0435\u043D \u0434\u0435\u0439\u0441\
+        \u0442\u0432\u0438\u0442\u0435\u043B\u0435\u043D 24 \u0447\u0430\u0441\u0430\
+        \ \u0438 \u0434\u043E\u043B\u0436\u0435\u043D \u043F\u0435\u0440\u0435\u0434\
+        \u0430\u0432\u0430\u0442\u044C\u0441\u044F \u0432 \u0437\u0430\u0433\u043E\
+        \u043B\u043E\u0432\u043A\u0435:\nAuthorization: Bearer <token>"
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/languages:
+    get:
+      tags:
+      - Languages
+      summary: Get Languages
+      operationId: get_languages
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/LanguageModel'
+                type: array
+                title: Response Get Languages
+      security:
+      - APIKeyHeader: []
+  /api/translations:
+    get:
+      tags:
+      - Translations
+      summary: Get Translations
+      operationId: get_translations
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: language
+        in: query
+        required: false
+        schema:
+          title: Language
+          type: string
+      - name: only_active
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Only Active
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TranslationModel'
+                title: Response Get Translations
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/translation_info:
+    get:
+      tags:
+      - Translations
+      summary: Get Translation Info
+      operationId: get_translation_info
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: translation
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Translation
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslationInfoModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/translations/{translation_code}/books:
+    get:
+      tags:
+      - Translations
+      summary: Get Translation Books
+      operationId: get_translation_books
+      security:
+      - APIKeyHeader: []
+      parameters:
+      - name: translation_code
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Translation Code
+      - name: voice_code
+        in: query
+        required: false
+        schema:
+          title: Voice Code
+          type: integer
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TranslationBookModel'
+                title: Response Get Translation Books
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/translations/{translation_code}:
+    put:
+      tags:
+      - Translations
+      summary: Update Translation
+      operationId: update_translation
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: translation_code
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Translation Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranslationUpdateModel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranslationModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/voices/{voice_code}:
+    put:
+      tags:
+      - Voices
+      summary: Update Voice
+      operationId: update_voice
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: voice_code
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Voice Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceUpdateModel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/voices/{voice_code}/anomalies:
+    get:
+      tags:
+      - Voices
+      summary: Get Voice Anomalies
+      operationId: get_voice_anomalies
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: voice_code
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Voice Code
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      - name: anomaly_type
+        in: query
+        required: false
+        schema:
+          title: Anomaly Type
+          type: string
+      - name: book_number
+        in: query
+        required: false
+        schema:
+          title: Book Number
+          type: integer
+      - name: status
+        in: query
+        required: false
+        schema:
+          title: Status
+          type: string
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          title: Sort By
+          type: string
+      - name: sort_order
+        in: query
+        required: false
+        schema:
+          title: Sort Order
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceAnomaliesResponseModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/voices/anomalies:
+    post:
+      tags:
+      - Voices
+      summary: Create Voice Anomaly
+      description: Create a new voice anomaly
+      operationId: create_voice_anomaly
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceAnomalyCreateModel'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceAnomalyModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/voices/anomalies/{anomaly_code}/status:
+    patch:
+      tags:
+      - Voices
+      summary: Update Anomaly Status
+      description: Update the status of a voice anomaly
+      operationId: update_anomaly_status
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: anomaly_code
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Anomaly Code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnomalyStatusUpdateModel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceAnomalyModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/voices/manual-fixes:
+    post:
+      tags:
+      - Voices
+      summary: Create Voice Manual Fix
+      description: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0440\u0443\u0447\u043D\
+        \u0443\u044E \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\
+        \u043A\u0443 \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u0434\u043B\u044F\
+        \ \u0441\u0442\u0438\u0445\u0430\n\n\u041F\u043E\u0437\u0432\u043E\u043B\u044F\
+        \u0435\u0442 \u0437\u0430\u0434\u0430\u0442\u044C \u043A\u043E\u0440\u0440\
+        \u0435\u043A\u0442\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u043D\
+        \u0430\u0447\u0430\u043B\u0430 \u0438 \u043E\u043A\u043E\u043D\u0447\u0430\
+        \u043D\u0438\u044F \u0441\u0442\u0438\u0445\u0430 \u0431\u0435\u0437 \u043F\
+        \u0440\u0438\u0432\u044F\u0437\u043A\u0438 \u043A \u0430\u043D\u043E\u043C\
+        \u0430\u043B\u0438\u0438.\n\u0415\u0441\u043B\u0438 \u043A\u043E\u0440\u0440\
+        \u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u0434\u043B\u044F\
+        \ \u0434\u0430\u043D\u043D\u043E\u0433\u043E \u0441\u0442\u0438\u0445\u0430\
+        \ \u0443\u0436\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\
+        \u0442, \u043E\u043D\u0430 \u0431\u0443\u0434\u0435\u0442 \u043E\u0431\u043D\
+        \u043E\u0432\u043B\u0435\u043D\u0430."
+      operationId: create_voice_manual_fix
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceManualFixCreateModel'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceManualFixModel'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+components:
+  schemas:
+    AnomalyStatus:
+      type: string
+      enum:
+      - detected
+      - confirmed
+      - disproved
+      - corrected
+      - already_resolved
+      title: AnomalyStatus
+    AnomalyStatusUpdateModel:
+      properties:
+        status:
+          $ref: '#/components/schemas/AnomalyStatus'
+        begin:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Begin
+        end:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: End
+      type: object
+      required:
+      - status
+      title: AnomalyStatusUpdateModel
+    BookInfoModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        number:
+          type: integer
+          title: Number
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        chapters_count:
+          type: integer
+          title: Chapters Count
+      type: object
+      required:
+      - code
+      - number
+      - alias
+      - name
+      - chapters_count
+      title: BookInfoModel
+    ExcerptWithAlignmentModel:
+      properties:
+        title:
+          type: string
+          title: Title
+        is_single_chapter:
+          type: boolean
+          title: Is Single Chapter
+        parts:
+          items:
+            $ref: '#/components/schemas/PartsWithAlignmentModel'
+          type: array
+          title: Parts
+      type: object
+      required:
+      - title
+      - is_single_chapter
+      - parts
+      title: ExcerptWithAlignmentModel
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    LanguageModel:
+      properties:
+        alias:
+          type: string
+          title: Alias
+        name_en:
+          type: string
+          title: Name En
+        name_national:
+          type: string
+          title: Name National
+      type: object
+      required:
+      - alias
+      - name_en
+      - name_national
+      title: LanguageModel
+    LoginRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - username
+      - password
+      title: LoginRequest
+      description: "\u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0430 \u0430\u0432\
+        \u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u044E"
+    NoteModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        number:
+          type: integer
+          title: Number
+        text:
+          type: string
+          title: Text
+        verse_code:
+          title: Verse Code
+          type: integer
+        title_code:
+          title: Title Code
+          type: integer
+        position_text:
+          type: integer
+          title: Position Text
+        position_html:
+          type: integer
+          title: Position Html
+      type: object
+      required:
+      - code
+      - number
+      - text
+      - position_text
+      - position_html
+      title: NoteModel
+    PartsWithAlignmentModel:
+      properties:
+        book:
+          $ref: '#/components/schemas/BookInfoModel'
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        audio_link:
+          type: string
+          title: Audio Link
+        prev_excerpt:
+          type: string
+          title: Prev Excerpt
+        next_excerpt:
+          type: string
+          title: Next Excerpt
+        verses:
+          items:
+            $ref: '#/components/schemas/VerseWithAlignmentModel'
+          type: array
+          title: Verses
+        notes:
+          items:
+            $ref: '#/components/schemas/NoteModel'
+          type: array
+          title: Notes
+        titles:
+          items:
+            $ref: '#/components/schemas/TitleModel'
+          type: array
+          title: Titles
+      type: object
+      required:
+      - book
+      - chapter_number
+      - audio_link
+      - prev_excerpt
+      - next_excerpt
+      - verses
+      - notes
+      - titles
+      title: PartsWithAlignmentModel
+    SimpleErrorResponse:
+      properties:
+        detail:
+          type: string
+          title: Detail
+      type: object
+      required:
+      - detail
+      title: SimpleErrorResponse
+    TitleModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        text:
+          type: string
+          title: Text
+        before_verse_code:
+          type: integer
+          title: Before Verse Code
+        metadata:
+          title: Metadata
+          type: string
+        reference:
+          title: Reference
+          type: string
+      type: object
+      required:
+      - code
+      - text
+      - before_verse_code
+      title: TitleModel
+    Token:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - access_token
+      - token_type
+      - expires_in
+      title: Token
+      description: "\u041C\u043E\u0434\u0435\u043B\u044C \u0442\u043E\u043A\u0435\u043D\
+        \u0430 \u0434\u043E\u0441\u0442\u0443\u043F\u0430"
+    TranslationBookModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        book_number:
+          type: integer
+          title: Book Number
+        name:
+          type: string
+          title: Name
+        alias:
+          title: Alias
+          type: string
+        chapters_count:
+          type: integer
+          title: Chapters Count
+        anomalies_count:
+          title: Anomalies Count
+          type: integer
+        anomalies_open_count:
+          title: Anomalies Open Count
+          type: integer
+      type: object
+      required:
+      - code
+      - book_number
+      - name
+      - chapters_count
+      title: TranslationBookModel
+    TranslationInfoModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          title: Description
+          type: string
+        language:
+          type: string
+          title: Language
+        books_info:
+          items:
+            $ref: '#/components/schemas/BookInfoModel'
+          type: array
+          title: Books Info
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - language
+      - books_info
+      title: TranslationInfoModel
+    TranslationModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          title: Description
+          type: string
+        language:
+          type: string
+          title: Language
+        active:
+          type: boolean
+          title: Active
+        voices:
+          items:
+            $ref: '#/components/schemas/VoiceModel'
+          type: array
+          title: Voices
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - language
+      - active
+      - voices
+      title: TranslationModel
+    TranslationUpdateModel:
+      properties:
+        alias:
+          title: Alias
+          type: string
+        name:
+          title: Name
+          type: string
+        description:
+          title: Description
+          type: string
+        language:
+          title: Language
+          type: string
+        active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Active
+      type: object
+      title: TranslationUpdateModel
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VerseWithAlignmentModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        number:
+          type: integer
+          title: Number
+        join:
+          type: integer
+          title: Join
+        text:
+          type: string
+          title: Text
+        html:
+          type: string
+          title: Html
+        begin:
+          type: number
+          title: Begin
+        end:
+          type: number
+          title: End
+        start_paragraph:
+          type: boolean
+          title: Start Paragraph
+      type: object
+      required:
+      - code
+      - number
+      - join
+      - text
+      - html
+      - begin
+      - end
+      - start_paragraph
+      title: VerseWithAlignmentModel
+    VoiceAnomaliesResponseModel:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/VoiceAnomalyModel'
+          type: array
+          title: Items
+        total_count:
+          type: integer
+          title: Total Count
+      type: object
+      required:
+      - items
+      - total_count
+      title: VoiceAnomaliesResponseModel
+    VoiceAnomalyCreateModel:
+      properties:
+        voice:
+          type: integer
+          title: Voice
+        translation:
+          type: integer
+          title: Translation
+        book_number:
+          type: integer
+          title: Book Number
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        verse_number:
+          type: integer
+          title: Verse Number
+        word:
+          title: Word
+          type: string
+        position_in_verse:
+          title: Position In Verse
+          type: integer
+        position_from_end:
+          title: Position From End
+          type: integer
+        duration:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration
+        speed:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Speed
+        ratio:
+          type: number
+          title: Ratio
+        anomaly_type:
+          type: string
+          title: Anomaly Type
+          default: manual
+        status:
+          $ref: '#/components/schemas/AnomalyStatus'
+          default: detected
+      type: object
+      required:
+      - voice
+      - translation
+      - book_number
+      - chapter_number
+      - verse_number
+      - ratio
+      title: VoiceAnomalyCreateModel
+    VoiceAnomalyModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        voice:
+          type: integer
+          title: Voice
+        translation:
+          type: integer
+          title: Translation
+        book_number:
+          type: integer
+          title: Book Number
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        verse_number:
+          type: integer
+          title: Verse Number
+        word:
+          title: Word
+          type: string
+        position_in_verse:
+          title: Position In Verse
+          type: integer
+        position_from_end:
+          title: Position From End
+          type: integer
+        duration:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration
+        speed:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Speed
+        ratio:
+          type: number
+          title: Ratio
+        anomaly_type:
+          type: string
+          title: Anomaly Type
+          default: fast
+        status:
+          $ref: '#/components/schemas/AnomalyStatus'
+          default: detected
+        verse_text:
+          title: Verse Text
+          type: string
+      type: object
+      required:
+      - code
+      - voice
+      - translation
+      - book_number
+      - chapter_number
+      - verse_number
+      - ratio
+      title: VoiceAnomalyModel
+    VoiceManualFixCreateModel:
+      properties:
+        voice:
+          type: integer
+          title: Voice
+        book_number:
+          type: integer
+          title: Book Number
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        verse_number:
+          type: integer
+          title: Verse Number
+        begin:
+          type: number
+          title: Begin
+        end:
+          type: number
+          title: End
+        info:
+          title: Info
+          type: string
+      type: object
+      required:
+      - voice
+      - book_number
+      - chapter_number
+      - verse_number
+      - begin
+      - end
+      title: VoiceManualFixCreateModel
+    VoiceManualFixModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        voice:
+          type: integer
+          title: Voice
+        book_number:
+          type: integer
+          title: Book Number
+        chapter_number:
+          type: integer
+          title: Chapter Number
+        verse_number:
+          type: integer
+          title: Verse Number
+        begin:
+          type: number
+          title: Begin
+        end:
+          type: number
+          title: End
+        info:
+          title: Info
+          type: string
+      type: object
+      required:
+      - code
+      - voice
+      - book_number
+      - chapter_number
+      - verse_number
+      - begin
+      - end
+      title: VoiceManualFixModel
+    VoiceModel:
+      properties:
+        code:
+          type: integer
+          title: Code
+        alias:
+          type: string
+          title: Alias
+        name:
+          type: string
+          title: Name
+        description:
+          title: Description
+          type: string
+        is_music:
+          type: boolean
+          title: Is Music
+        active:
+          type: boolean
+          title: Active
+        anomalies_count:
+          type: integer
+          title: Anomalies Count
+          default: 0
+      type: object
+      required:
+      - code
+      - alias
+      - name
+      - is_music
+      - active
+      title: VoiceModel
+    VoiceUpdateModel:
+      properties:
+        alias:
+          title: Alias
+          type: string
+        name:
+          title: Name
+          type: string
+        description:
+          title: Description
+          type: string
+        is_music:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Music
+        active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Active
+      type: object
+      title: VoiceUpdateModel
+  securitySchemes:
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    HTTPBearer:
+      type: http
+      scheme: bearer
+tags:
+- name: Auth
+  description: "\u0410\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u044F\
+    \ \u0438 \u0430\u0443\u0442\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0446\
+    \u0438\u044F"
+- name: Languages
+  description: ''
+- name: Translations
+  description: ''
+- name: Voices
+  description: ''
+- name: Excerpts
+  description: ''
+- name: Audio
+  description: Streaming & Download mp3

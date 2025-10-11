@@ -2,6 +2,28 @@
 
 REST API для работы с переводами Библии, озвучкой и аномалиями.
 
+## 🔐 Авторизация
+
+API использует двухуровневую систему авторизации:
+
+1. **Статичный API ключ** (`X-API-Key`) - для публичных GET эндпоинтов
+2. **JWT токены** (`Authorization: Bearer`) - для административных операций (24 часа)
+
+```bash
+# Публичные эндпоинты
+curl -H "X-API-Key: bible-api-key-2024" http://localhost:8000/translations
+
+# Административные эндпоинты
+TOKEN=$(curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
+
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/voices/1/anomalies
+```
+
+📖 **Документация:** [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)  
+🧪 **Тестирование:** `python tests/test_auth.py`
+
 ## Аномалии озвучки
 
 ### Статусы аномалий
@@ -239,12 +261,17 @@ curl http://localhost:8001/docs
 
 ### Запуск тестов
 
+⚠️ **ВАЖНО:** Integration тесты пишут в БД! См. [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
+
 ```bash
 # Установить pytest если еще не установлен
 pip install pytest
 
-# Запустить тесты
-PYTHONPATH=/root/cep/bible-api/app python -m pytest tests/ -v
+# ✅ Безопасно - только unit тесты (НЕ пишут в БД)
+PYTHONPATH=/root/cep/bible-api/app pytest tests/ -k "not integration" -v
+
+# ⚠️ ОПАСНО - все тесты (integration тесты ПИШУТ в БД!)
+PYTHONPATH=/root/cep/bible-api/app pytest tests/ -v
 ```
 
 ## Миграции
@@ -269,3 +296,9 @@ python migrations/migration_manager.py mark-executed --file "migration_file.sql"
 ```
 
 Подробнее см. [migrations/README.md](migrations/README.md)
+
+## Документация
+
+- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Docker команды, структура проекта, ключевые таблицы БД
+- **[docs/SECURITY.md](docs/SECURITY.md)** - таблица защиты всех эндпоинтов, примеры авторизации
+- **[docs/TESTING.md](docs/TESTING.md)** - ⚠️ запуск тестов (ВАЖНО! integration тесты используют БД)
