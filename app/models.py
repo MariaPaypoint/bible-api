@@ -163,6 +163,7 @@ class TranslationBookModel(BaseModel):
     anomalies_count: Optional[int] = None
     anomalies_open_count: Optional[int] = None
     chapters_without_audio: list[int] = Field(default_factory=list)
+    chapters_without_text: list[int] = Field(default_factory=list)
 
 
 # Voice Anomaly Creation

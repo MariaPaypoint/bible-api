@@ -1026,6 +1026,11 @@ components:
             type: integer
           type: array
           title: Chapters Without Audio
+        chapters_without_text:
+          items:
+            type: integer
+          type: array
+          title: Chapters Without Text
       type: object
       required:
       - code

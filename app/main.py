@@ -266,30 +266,41 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
         
         books = cursor.fetchall()
         
-        # If voice_code is provided, check for chapters without audio
-        if voice_code and voice_alias and translation_alias:
-            for book in books:
-                book_number = book['book_number']
-                book_code = book['code']
-                
-                # Get all chapter numbers for this book
-                cursor.execute('''
-                    SELECT DISTINCT chapter_number 
-                    FROM translation_verses 
-                    WHERE translation_book = %s
-                    ORDER BY chapter_number
-                ''', (book_code,))
-                
-                chapters = cursor.fetchall()
+        # Check for chapters without text and audio
+        for book in books:
+            book_number = book['book_number']
+            book_code = book['code']
+            chapters_count = book['chapters_count'] or 0
+            
+            # Get all chapter numbers that exist in translation_verses
+            cursor.execute('''
+                SELECT DISTINCT chapter_number 
+                FROM translation_verses 
+                WHERE translation_book = %s
+                ORDER BY chapter_number
+            ''', (book_code,))
+            
+            existing_chapters = {row['chapter_number'] for row in cursor.fetchall()}
+            
+            # Find chapters without text (missing in translation_verses)
+            if chapters_count > 0:
+                expected_chapters = set(range(1, chapters_count + 1))
+                chapters_without_text = sorted(expected_chapters - existing_chapters)
+            else:
+                chapters_without_text = []
+            
+            book['chapters_without_text'] = chapters_without_text
+            
+            # If voice_code is provided, check for chapters without audio
+            if voice_code and voice_alias and translation_alias:
                 chapters_without_audio = []
                 
-                # Check each chapter for audio file existence
-                for chapter in chapters:
-                    chapter_number = chapter['chapter_number']
+                # Check each existing chapter for audio file existence
+                for chapter_number in existing_chapters:
                     if not check_audio_file_exists(translation_alias, voice_alias, book_number, chapter_number):
                         chapters_without_audio.append(chapter_number)
                 
-                book['chapters_without_audio'] = chapters_without_audio
+                book['chapters_without_audio'] = sorted(chapters_without_audio)
         
         return books
         
