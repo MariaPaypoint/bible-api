@@ -235,7 +235,7 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             cursor.execute('''
                 SELECT 
                     tb.code, tb.book_number, tb.name, bb.code1 AS alias,
-                    (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
+                    (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
                     COALESCE(
                         (SELECT COUNT(*) FROM voice_anomalies va WHERE va.book_number = tb.book_number AND va.voice = %s), 
                         0
@@ -257,7 +257,7 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             cursor.execute('''
                 SELECT 
                     tb.code, tb.book_number, tb.name, bb.code1 AS alias,
-                    (SELECT COUNT(DISTINCT chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+                    (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
                 FROM translation_books AS tb
                 LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
                 WHERE tb.translation = %s
