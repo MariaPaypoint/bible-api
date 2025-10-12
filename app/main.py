@@ -1,5 +1,8 @@
 from typing import Union, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime
+from functools import wraps
+import hashlib
+import json
 
 from fastapi import FastAPI, HTTPException, status, APIRouter
 from database import create_connection
@@ -16,6 +19,33 @@ from auth import (
     RequireAPIKey, RequireJWT
 )
 from config import JWT_EXPIRE_HOURS
+
+# Simple in-memory cache with TTL
+_cache = {}
+_cache_timestamps = {}
+
+def timed_cache(seconds: int = 3600):
+    """Decorator for caching function results with TTL"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key from function name and arguments
+            cache_key = f"{func.__name__}:{hashlib.md5(json.dumps([args, kwargs], sort_keys=True, default=str).encode()).hexdigest()}"
+            
+            # Check if cached value exists and is not expired
+            if cache_key in _cache:
+                timestamp = _cache_timestamps.get(cache_key)
+                if timestamp and (datetime.now() - timestamp).total_seconds() < seconds:
+                    return _cache[cache_key]
+            
+            # Call function and cache result
+            result = func(*args, **kwargs)
+            _cache[cache_key] = result
+            _cache_timestamps[cache_key] = datetime.now()
+            
+            return result
+        return wrapper
+    return decorator
 
 # Tags metadata for controlling order in Swagger UI
 tags_metadata = [
@@ -43,9 +73,24 @@ tags_metadata = [
         "name": "Audio",
         "description": "Streaming & Download mp3",
     },
+    {
+        "name": "Admin",
+        "description": "Административные операции (требуется JWT токен)",
+    },
 ]
 
-app = FastAPI(openapi_tags=tags_metadata)
+app = FastAPI(
+    openapi_tags=tags_metadata,
+    title="Bible API",
+    description="API для работы с библией",
+    version="0.1.0",
+    swagger_ui_parameters={
+        "deepLinking": True,
+        "displayRequestDuration": True,
+        "defaultModelsExpandDepth": 0,
+        "tryItOutEnabled": True,
+    }
+)
 
 # Создаем основной роутер с префиксом /api
 api_router = APIRouter(prefix="/api")
@@ -207,6 +252,44 @@ def get_translation_info(translation: int, api_key: bool = RequireAPIKey):
     return result
 
 
+@timed_cache(seconds=3600)  # Cache for 1 hour
+def get_chapters_by_book(translation_code: int) -> dict:
+    """Get all chapters for all books in a translation (cached)"""
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Get all book codes for this translation
+        cursor.execute('''
+            SELECT code FROM translation_books WHERE translation = %s
+        ''', (translation_code,))
+        book_codes = [row['code'] for row in cursor.fetchall()]
+        
+        if not book_codes:
+            return {}
+        
+        # Get all chapters in one query
+        placeholders = ','.join(['%s'] * len(book_codes))
+        cursor.execute(f'''
+            SELECT translation_book, chapter_number
+            FROM translation_verses
+            WHERE translation_book IN ({placeholders})
+            GROUP BY translation_book, chapter_number
+        ''', book_codes)
+        
+        # Build map
+        chapters_by_book = {}
+        for row in cursor.fetchall():
+            book_code = row['translation_book']
+            if book_code not in chapters_by_book:
+                chapters_by_book[book_code] = set()
+            chapters_by_book[book_code].add(row['chapter_number'])
+        
+        return chapters_by_book
+    finally:
+        cursor.close()
+        connection.close()
+
+
 @api_router.get('/translations/{translation_code}/books', response_model=list[TranslationBookModel], operation_id="get_translation_books", tags=["Translations"])
 def get_translation_books(translation_code: int, voice_code: Optional[int] = None, api_key: bool = RequireAPIKey):
     connection = create_connection()
@@ -266,21 +349,17 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
         
         books = cursor.fetchall()
         
+        # Get all existing chapters from cache
+        chapters_by_book = get_chapters_by_book(translation_code)
+        
         # Check for chapters without text and audio
         for book in books:
             book_number = book['book_number']
             book_code = book['code']
             chapters_count = book['chapters_count'] or 0
             
-            # Get all chapter numbers that exist in translation_verses
-            cursor.execute('''
-                SELECT DISTINCT chapter_number 
-                FROM translation_verses 
-                WHERE translation_book = %s
-                ORDER BY chapter_number
-            ''', (book_code,))
-            
-            existing_chapters = {row['chapter_number'] for row in cursor.fetchall()}
+            # Get existing chapters from pre-loaded data
+            existing_chapters = chapters_by_book.get(book_code, set())
             
             # Find chapters without text (missing in translation_verses)
             if chapters_count > 0:
@@ -311,6 +390,16 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
     finally:
         cursor.close()
         connection.close()
+
+
+@api_router.post('/cache/clear', operation_id="clear_cache", tags=["Admin"])
+def clear_cache(username: str = RequireJWT):
+    """Clear all cached data (requires JWT authentication)"""
+    global _cache, _cache_timestamps
+    cache_size = len(_cache)
+    _cache.clear()
+    _cache_timestamps.clear()
+    return {"message": f"Cache cleared successfully", "items_cleared": cache_size}
 
 
 @api_router.put('/translations/{translation_code}', response_model=TranslationModel, operation_id="update_translation", tags=["Translations"])

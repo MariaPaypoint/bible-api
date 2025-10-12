@@ -11,7 +11,7 @@ import os
 # Добавляем путь к модулю app
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'app'))
 
-from excerpt import check_audio_file_exists, get_voice_info
+from excerpt import check_audio_file_exists, get_voice_info, get_existing_audio_chapters
 
 
 class TestExcerptAudioLink(unittest.TestCase):
@@ -19,25 +19,29 @@ class TestExcerptAudioLink(unittest.TestCase):
 
     def test_check_audio_file_exists_function(self):
         """Тест функции check_audio_file_exists"""
-        with patch('excerpt.Path') as mock_path:
+        # Clear caches before test
+        check_audio_file_exists.cache_clear()
+        get_existing_audio_chapters.cache_clear()
+        
+        with patch('excerpt.get_all_existing_audio_chapters') as mock_get_all:
             # Настраиваем мок для существующего файла
-            mock_file = MagicMock()
-            mock_file.exists.return_value = True
-            mock_path.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_file
+            mock_get_all.return_value = {1: {1, 2, 3}}  # Book 1 has chapters 1, 2, 3
             
             result = check_audio_file_exists('syn', 'bondarenko', 1, 1)
             self.assertTrue(result)
             
-            # Проверяем, что путь формируется правильно
-            mock_path.assert_called_with('audio')
+            # Проверяем, что функция была вызвана с правильными параметрами
+            mock_get_all.assert_called_with('syn', 'bondarenko')
 
     def test_check_audio_file_not_exists(self):
         """Тест функции check_audio_file_exists для несуществующего файла"""
-        with patch('excerpt.Path') as mock_path:
+        # Clear caches before test
+        check_audio_file_exists.cache_clear()
+        get_existing_audio_chapters.cache_clear()
+        
+        with patch('excerpt.get_all_existing_audio_chapters') as mock_get_all:
             # Настраиваем мок для несуществующего файла
-            mock_file = MagicMock()
-            mock_file.exists.return_value = False
-            mock_path.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_file
+            mock_get_all.return_value = {1: {2, 3}}  # Book 1 has chapters 2, 3 (not 1)
             
             result = check_audio_file_exists('syn', 'bondarenko', 1, 1)
             self.assertFalse(result)

@@ -5,6 +5,7 @@ from database import create_connection
 import re
 import os
 from pathlib import Path
+from functools import lru_cache
 from config import MP3_FILES_PATH, AUDIO_BASE_URL
 from models import *
 from auth import RequireAPIKey
@@ -49,9 +50,73 @@ def get_voice_info(cursor, voice: int, translation: int) -> dict:
     return result
 
 
+@lru_cache(maxsize=20)  # Cache for translation+voice combinations
+def get_all_existing_audio_chapters(translation_alias: str, voice_alias: str) -> dict:
+    """
+    Получает список всех существующих глав для всех книг (с кешированием)
+    
+    Args:
+        translation_alias: Алиас перевода
+        voice_alias: Алиас голоса
+        
+    Returns:
+        Dict {book_number: set(chapter_numbers)}
+    """
+    base_path = Path(MP3_FILES_PATH) / translation_alias / voice_alias / "mp3"
+    
+    if not base_path.exists():
+        return {}
+    
+    result = {}
+    try:
+        # Scan all book directories
+        for book_entry in os.scandir(base_path):
+            if book_entry.is_dir():
+                try:
+                    book_number = int(book_entry.name)
+                except ValueError:
+                    continue
+                
+                chapters = set()
+                # Scan all chapter files in this book
+                for chapter_entry in os.scandir(book_entry.path):
+                    if chapter_entry.is_file() and chapter_entry.name.endswith('.mp3'):
+                        chapter_str = chapter_entry.name[:-4]  # Remove .mp3
+                        try:
+                            chapters.add(int(chapter_str))
+                        except ValueError:
+                            pass
+                
+                if chapters:
+                    result[book_number] = chapters
+    except OSError:
+        pass
+    
+    return result
+
+
+@lru_cache(maxsize=100)  # Cache directory scans
+def get_existing_audio_chapters(translation_alias: str, voice_alias: str, book_number: int) -> set:
+    """
+    Получает список всех существующих глав для книги (с кешированием)
+    
+    Args:
+        translation_alias: Алиас перевода
+        voice_alias: Алиас голоса
+        book_number: Номер книги
+        
+    Returns:
+        Set номеров глав, для которых есть аудиофайлы
+    """
+    # Use the batch function for better performance
+    all_chapters = get_all_existing_audio_chapters(translation_alias, voice_alias)
+    return all_chapters.get(book_number, set())
+
+
+@lru_cache(maxsize=10000)  # Cache up to 10000 file checks
 def check_audio_file_exists(translation_alias: str, voice_alias: str, book_number: int, chapter_number: int) -> bool:
     """
-    Проверяет существование аудиофайла в папке audio
+    Проверяет существование аудиофайла в папке audio (с кешированием)
     
     Args:
         translation_alias: Алиас перевода (например: syn, rst, bsb)
@@ -62,13 +127,9 @@ def check_audio_file_exists(translation_alias: str, voice_alias: str, book_numbe
     Returns:
         True если файл существует, False если нет
     """
-    # Формируем путь к файлу аналогично validate_audio_path из audio.py
-    book_str = str(book_number).zfill(2)
-    chapter_str = str(chapter_number).zfill(2)
-    
-    file_path = Path(MP3_FILES_PATH) / translation_alias / voice_alias / "mp3" / book_str / f"{chapter_str}.mp3"
-    
-    return file_path.exists()
+    # Use batch check for better performance
+    existing_chapters = get_existing_audio_chapters(translation_alias, voice_alias, book_number)
+    return chapter_number in existing_chapters
 
 
 def get_book_number(cursor: int, book_alias: str) -> str:
