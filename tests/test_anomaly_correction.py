@@ -146,7 +146,7 @@ class TestAnomalyCorrection:
         }
         
         # Make request
-        response = client.patch("/voices/anomalies/1/status", json=correction_data)
+        response = client.patch("/api/voices/anomalies/1/status", json=correction_data)
         
         # Verify response
         assert response.status_code == 200
@@ -189,7 +189,7 @@ class TestAnomalyCorrection:
         }
         
         # Make request
-        response = client.patch("/voices/anomalies/1/status", json=correction_data)
+        response = client.patch("/api/voices/anomalies/1/status", json=correction_data)
         
         # Verify response
         assert response.status_code == 200
@@ -231,7 +231,7 @@ class TestAnomalyCorrection:
         }
         
         # Make request
-        response = client.patch("/voices/anomalies/1/status", json=disproved_data)
+        response = client.patch("/api/voices/anomalies/1/status", json=disproved_data)
         
         # Verify response
         assert response.status_code == 200
@@ -271,7 +271,7 @@ class TestAnomalyCorrection:
         }
         
         # Make request
-        response = client.patch("/voices/anomalies/1/status", json=confirmed_data)
+        response = client.patch("/api/voices/anomalies/1/status", json=confirmed_data)
         
         # Verify response
         assert response.status_code == 422

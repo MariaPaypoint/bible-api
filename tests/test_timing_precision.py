@@ -60,7 +60,7 @@ class TestTimingPrecision:
             self.base_anomaly_data
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -93,7 +93,7 @@ class TestTimingPrecision:
             self.base_anomaly_data
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -125,7 +125,7 @@ class TestTimingPrecision:
             existing_fix
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -155,7 +155,7 @@ class TestTimingPrecision:
             existing_fix
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -183,7 +183,7 @@ class TestTimingPrecision:
             precise_anomaly
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         
@@ -218,7 +218,7 @@ class TestTimingPrecision:
             zero_timing_anomaly
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "begin": 0.0,
             "end": 1.0
@@ -255,7 +255,7 @@ class TestTimingPrecision:
             negative_timing_anomaly
         ]
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         

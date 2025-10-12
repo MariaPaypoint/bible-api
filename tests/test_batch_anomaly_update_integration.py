@@ -58,7 +58,7 @@ class TestBatchAnomalyUpdateIntegration:
         
         # Make PATCH request
         response = self.client.patch(
-            "/voices/anomalies/123/status",
+            "/api/voices/anomalies/123/status",
             json={"status": "confirmed"}
         )
         
@@ -119,7 +119,7 @@ class TestBatchAnomalyUpdateIntegration:
         
         # Make PATCH request
         response = self.client.patch(
-            "/voices/anomalies/456/status",
+            "/api/voices/anomalies/456/status",
             json={"status": "disproved"}
         )
         
@@ -180,7 +180,7 @@ class TestBatchAnomalyUpdateIntegration:
         
         # Make PATCH request with corrected timing
         response = self.client.patch(
-            "/voices/anomalies/789/status",
+            "/api/voices/anomalies/789/status",
             json={
                 "status": "corrected",
                 "begin": 45.2,
@@ -245,7 +245,7 @@ class TestBatchAnomalyUpdateIntegration:
         
         # Make PATCH request
         response = self.client.patch(
-            "/voices/anomalies/100/status",
+            "/api/voices/anomalies/100/status",
             json={"status": "confirmed"}
         )
         

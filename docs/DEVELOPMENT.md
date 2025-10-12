@@ -48,11 +48,11 @@ python migrations/migration_manager.py status
 ## OpenAPI спецификация
 
 ```bash
-# Экспорт OpenAPI схемы в JSON
-PYTHONPATH=app python extract-openapi.py app.main:app
+# Экспорт OpenAPI схемы (выполняется в контейнере)
+docker exec bible-api bash -c "cd /code && PYTHONPATH=app python3 extract-openapi.py app.main:app"
 ```
 
-Создаст файл `openapi.json` с полной спецификацией API.
+Создаст файл `openapi.yaml` с полной спецификацией API.
 
 ## Структура проекта
 

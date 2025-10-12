@@ -18,7 +18,7 @@ class TestAnomalyCorrectionIntegration:
         """Test API validation for CORRECTED status missing begin/end"""
         
         # Test missing both begin and end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected"
         })
         
@@ -29,7 +29,7 @@ class TestAnomalyCorrectionIntegration:
     def test_patch_anomaly_status_corrected_validation_missing_begin(self):
         """Test API validation for CORRECTED status missing begin"""
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "end": 12.0
         })
@@ -41,7 +41,7 @@ class TestAnomalyCorrectionIntegration:
     def test_patch_anomaly_status_corrected_validation_missing_end(self):
         """Test API validation for CORRECTED status missing end"""
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "begin": 10.0
         })
@@ -54,7 +54,7 @@ class TestAnomalyCorrectionIntegration:
         """Test API validation for CORRECTED status with begin >= end"""
         
         # Test begin > end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "begin": 15.0,
             "end": 10.0
@@ -65,7 +65,7 @@ class TestAnomalyCorrectionIntegration:
         assert any("begin must be less than end" in str(error) for error in error_detail)
         
         # Test begin == end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "begin": 10.0,
             "end": 10.0
@@ -79,7 +79,7 @@ class TestAnomalyCorrectionIntegration:
         """Test API validation forbids begin/end for non-CORRECTED statuses"""
         
         # Test DETECTED with begin/end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "detected",
             "begin": 10.0,
             "end": 12.0
@@ -90,7 +90,7 @@ class TestAnomalyCorrectionIntegration:
         assert any("begin and end are only allowed for corrected status" in str(error) for error in error_detail)
         
         # Test CONFIRMED with begin/end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed",
             "begin": 10.0,
             "end": 12.0
@@ -101,7 +101,7 @@ class TestAnomalyCorrectionIntegration:
         assert any("begin and end are only allowed for corrected status" in str(error) for error in error_detail)
         
         # Test DISPROVED with begin/end
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved",
             "begin": 10.0,
             "end": 12.0
@@ -115,7 +115,7 @@ class TestAnomalyCorrectionIntegration:
         """Test the request structure for CORRECTED status"""
         
         # This test will fail with 404 (anomaly not found) but validates request structure
-        response = client.patch("/voices/anomalies/999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999/status", json={
             "status": "corrected",
             "begin": 10.5,
             "end": 12.0
@@ -130,7 +130,7 @@ class TestAnomalyCorrectionIntegration:
         """Test the request structure for other statuses without begin/end"""
         
         # Test DETECTED without begin/end - should be valid structure
-        response = client.patch("/voices/anomalies/999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999/status", json={
             "status": "detected"
         })
         
@@ -139,7 +139,7 @@ class TestAnomalyCorrectionIntegration:
         assert "not found" in response.json()["detail"].lower()
         
         # Test CONFIRMED without begin/end - should be valid structure
-        response = client.patch("/voices/anomalies/999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999/status", json={
             "status": "confirmed"
         })
         
@@ -151,7 +151,7 @@ class TestAnomalyCorrectionIntegration:
         """Test that the PATCH endpoint exists and accepts requests"""
         
         # Test with invalid anomaly ID to confirm endpoint exists
-        response = client.patch("/voices/anomalies/0/status", json={
+        response = client.patch("/api/voices/anomalies/0/status", json={
             "status": "detected"
         })
         
@@ -164,7 +164,7 @@ class TestAnomalyCorrectionIntegration:
     def test_patch_anomaly_status_invalid_status_value(self):
         """Test API validation for invalid status values"""
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "invalid_status"
         })
         
@@ -176,7 +176,7 @@ class TestAnomalyCorrectionIntegration:
     def test_patch_anomaly_status_missing_status_field(self):
         """Test API validation for missing status field"""
         
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "begin": 10.0,
             "end": 12.0
         })
@@ -190,7 +190,7 @@ class TestAnomalyCorrectionIntegration:
         
         # This test will fail with 404 (anomaly not found) but validates the business logic
         # In a real scenario with existing corrected anomaly, it would return 422
-        response = client.patch("/voices/anomalies/999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999/status", json={
             "status": "confirmed"
         })
         

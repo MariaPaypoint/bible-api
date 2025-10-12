@@ -39,7 +39,7 @@ class TestExcerptWithCorrections:
         """Test that the excerpt_with_alignment endpoint exists and is accessible"""
         
         # Test with a request that should return 422 (invalid data) rather than 404 (not found)
-        response = client.get("/excerpt_with_alignment", params={
+        response = client.get("/api/excerpt_with_alignment", params={
             "translation": 999999,  # Non-existent translation
             "excerpt": "jhn 3:16"
         })

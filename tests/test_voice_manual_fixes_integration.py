@@ -18,7 +18,7 @@ class TestVoiceManualFixesIntegration:
         """Test that the anomaly status update endpoint exists and accepts requests"""
         
         # Test with invalid anomaly ID to check endpoint structure
-        response = client.patch("/voices/anomalies/99999/status", json={
+        response = client.patch("/api/voices/anomalies/99999/status", json={
             "status": "confirmed"
         })
         
@@ -31,7 +31,7 @@ class TestVoiceManualFixesIntegration:
         """Test that only valid status values are accepted"""
         
         # Test with invalid status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "invalid_status"
         })
         
@@ -51,7 +51,7 @@ class TestVoiceManualFixesIntegration:
                 request_data["begin"] = 10.0
                 request_data["end"] = 12.0
             
-            response = client.patch("/voices/anomalies/99999/status", json=request_data)
+            response = client.patch("/api/voices/anomalies/99999/status", json=request_data)
             
             # Should return 404 (anomaly not found) not 422 (validation error)
             # This confirms the status value is valid
@@ -61,11 +61,11 @@ class TestVoiceManualFixesIntegration:
         """Test that the request body structure is validated correctly"""
         
         # Test with missing status field
-        response = client.patch("/voices/anomalies/1/status", json={})
+        response = client.patch("/api/voices/anomalies/1/status", json={})
         assert response.status_code == 422
         
         # Test with extra fields (should be ignored)
-        response = client.patch("/voices/anomalies/99999/status", json={
+        response = client.patch("/api/voices/anomalies/99999/status", json={
             "status": "confirmed",
             "extra_field": "should_be_ignored"
         })
@@ -79,7 +79,7 @@ class TestVoiceManualFixesIntegration:
         # This assumes there might be some test data in the database
         try:
             # Try to get anomalies for a common voice/translation combination
-            response = client.get("/voices/1/anomalies", params={"limit": 1})
+            response = client.get("/api/voices/1/anomalies", params={"limit": 1})
             
             if response.status_code == 200:
                 data = response.json()
@@ -122,7 +122,7 @@ class TestVoiceManualFixesIntegration:
         """Test that database constraint violations are handled properly"""
         
         # Test with extremely large anomaly ID
-        response = client.patch("/voices/anomalies/999999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999999/status", json={
             "status": "confirmed"
         })
         
@@ -155,7 +155,7 @@ class TestVoiceManualFixesIntegration:
         """Test that already_resolved status cannot be set manually"""
         
         # Test with a non-existent anomaly ID first to check the error message
-        response = client.patch("/voices/anomalies/999999/status", json={
+        response = client.patch("/api/voices/anomalies/999999/status", json={
             "status": "already_resolved"
         })
         
@@ -171,7 +171,7 @@ class TestVoiceManualFixesIntegration:
             # Try to find a real anomaly to test with
             try:
                 # Get some anomalies from any voice
-                voices_response = client.get("/voices")
+                voices_response = client.get("/api/voices")
                 if voices_response.status_code == 200:
                     voices_data = voices_response.json()
                     

@@ -12,6 +12,7 @@ import os
 from config import MP3_FILES_PATH, AUDIO_BASE_URL
 from auth import RequireAPIKey, verify_api_key_query
 from database import create_connection
+from models import AudioFileNotFoundError
 
 router = APIRouter(prefix="/audio", tags=["Audio"])
 

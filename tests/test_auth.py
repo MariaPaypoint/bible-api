@@ -6,7 +6,7 @@
 import requests
 import sys
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8000/api"
 API_KEY = "bible-api-key-2024"
 USERNAME = "admin"
 PASSWORD = "admin123"

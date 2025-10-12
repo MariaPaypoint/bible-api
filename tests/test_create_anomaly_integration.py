@@ -11,18 +11,18 @@ class TestCreateAnomalyIntegration:
     def test_create_anomaly_endpoint_exists(self):
         """Test that the endpoint exists and accepts POST requests"""
         # Test with invalid data to check endpoint exists
-        response = client.post("/voices/anomalies", json={})
+        response = client.post("/api/voices/anomalies", json={})
         # Should return 422 (validation error) not 404 (not found)
         assert response.status_code == 422
     
     def test_create_anomaly_validation_errors(self):
         """Test validation errors for required fields"""
         # Missing required fields
-        response = client.post("/voices/anomalies", json={})
+        response = client.post("/api/voices/anomalies", json={})
         assert response.status_code == 422
         
         # Invalid ratio (negative)
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 1,
             "translation": 1,
             "book_number": 1,
@@ -34,7 +34,7 @@ class TestCreateAnomalyIntegration:
         assert "Ratio must be positive" in response.text
         
         # Invalid anomaly_type
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 1,
             "translation": 1,
             "book_number": 1,
@@ -51,7 +51,7 @@ class TestCreateAnomalyIntegration:
         valid_types = ['fast', 'slow', 'long', 'short', 'manual']
         
         for anomaly_type in valid_types:
-            response = client.post("/voices/anomalies", json={
+            response = client.post("/api/voices/anomalies", json={
                 "voice": 999999,  # Non-existent voice to get 404
                 "translation": 1,
                 "book_number": 1,
@@ -66,7 +66,7 @@ class TestCreateAnomalyIntegration:
     
     def test_create_anomaly_default_values(self):
         """Test default values in request"""
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 999999,  # Non-existent voice to get 404
             "translation": 1,
             "book_number": 1,
@@ -81,7 +81,7 @@ class TestCreateAnomalyIntegration:
     
     def test_create_anomaly_with_optional_fields(self):
         """Test creation with all optional fields"""
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 999999,  # Non-existent voice to get 404
             "translation": 1,
             "book_number": 1,
@@ -102,7 +102,7 @@ class TestCreateAnomalyIntegration:
     def test_create_anomaly_response_structure(self):
         """Test that error responses have correct structure"""
         # Test voice not found
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 999999,
             "translation": 1,
             "book_number": 1,
@@ -115,7 +115,7 @@ class TestCreateAnomalyIntegration:
     
     def test_manual_anomaly_type_specifically(self):
         """Test that 'manual' anomaly type is specifically supported"""
-        response = client.post("/voices/anomalies", json={
+        response = client.post("/api/voices/anomalies", json={
             "voice": 999999,  # Non-existent voice
             "translation": 1,
             "book_number": 1,
@@ -137,12 +137,12 @@ class TestCreateAnomalyIntegration:
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
         
-        # Check that POST /voices/anomalies exists
-        assert "/voices/anomalies" in paths
-        assert "post" in paths["/voices/anomalies"]
+        # Check that POST /api/voices/anomalies exists
+        assert "/api/voices/anomalies" in paths
+        assert "post" in paths["/api/voices/anomalies"]
         
         # Check operation details
-        post_operation = paths["/voices/anomalies"]["post"]
+        post_operation = paths["/api/voices/anomalies"]["post"]
         assert post_operation["operationId"] == "create_voice_anomaly"
         assert "Voices" in post_operation["tags"]
         

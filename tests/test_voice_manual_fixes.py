@@ -55,7 +55,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         
@@ -101,7 +101,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "corrected",
             "begin": 10.0,
             "end": 12.5
@@ -146,7 +146,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -188,7 +188,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -218,7 +218,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         
@@ -266,7 +266,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         
@@ -306,7 +306,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "confirmed"
         })
         
@@ -343,7 +343,7 @@ class TestVoiceManualFixes:
         ]
         
         # Make request to update status
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "disproved"
         })
         
@@ -391,7 +391,7 @@ class TestVoiceManualFixes:
         mock_cursor.fetchone.return_value = mock_anomaly
         
         # Make request to update status to already_resolved
-        response = client.patch("/voices/anomalies/1/status", json={
+        response = client.patch("/api/voices/anomalies/1/status", json={
             "status": "already_resolved"
         })
         

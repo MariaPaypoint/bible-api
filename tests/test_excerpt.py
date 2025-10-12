@@ -15,7 +15,7 @@ def test_excerpt_jhn_3_16_17(api_headers):
     """Test requesting John 3:16-17 with translation=16"""
     
     # Make request to the API
-    response = client.get("/excerpt_with_alignment", params={
+    response = client.get("/api/excerpt_with_alignment", params={
         "translation": 16,
         "excerpt": "jhn 3:16-17"
     }, headers=api_headers)

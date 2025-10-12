@@ -1,5 +1,5 @@
 # models.py
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Literal
 from enum import Enum
 
@@ -158,10 +158,11 @@ class TranslationBookModel(BaseModel):
     code: int
     book_number: int
     name: str
-    alias: Optional[str] = None
+    alias: str
     chapters_count: int
     anomalies_count: Optional[int] = None
     anomalies_open_count: Optional[int] = None
+    chapters_without_audio: list[int] = Field(default_factory=list)
 
 
 # Voice Anomaly Creation

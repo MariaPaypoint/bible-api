@@ -60,7 +60,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SimpleErrorResponse'
-          description: Unprocessable Content
+          description: Unprocessable Entity
   /api/excerpt_with_alignment:
     get:
       tags:
@@ -100,7 +100,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SimpleErrorResponse'
-          description: Unprocessable Content
+          description: Unprocessable Entity
   /api/check_translation:
     get:
       tags:
@@ -1010,8 +1010,8 @@ components:
           type: string
           title: Name
         alias:
-          title: Alias
           type: string
+          title: Alias
         chapters_count:
           type: integer
           title: Chapters Count
@@ -1021,11 +1021,17 @@ components:
         anomalies_open_count:
           title: Anomalies Open Count
           type: integer
+        chapters_without_audio:
+          items:
+            type: integer
+          type: array
+          title: Chapters Without Audio
       type: object
       required:
       - code
       - book_number
       - name
+      - alias
       - chapters_count
       title: TranslationBookModel
     TranslationInfoModel:
@@ -1230,7 +1236,8 @@ components:
           title: Anomaly Type
           default: manual
         status:
-          $ref: '#/components/schemas/AnomalyStatus'
+          allOf:
+          - $ref: '#/components/schemas/AnomalyStatus'
           default: detected
       type: object
       required:
@@ -1288,7 +1295,8 @@ components:
           title: Anomaly Type
           default: fast
         status:
-          $ref: '#/components/schemas/AnomalyStatus'
+          allOf:
+          - $ref: '#/components/schemas/AnomalyStatus'
           default: detected
         verse_text:
           title: Verse Text

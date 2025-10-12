@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8000/api"
 API_KEY = "bible-api-key-2024"
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"

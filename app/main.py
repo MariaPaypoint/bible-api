@@ -8,7 +8,7 @@ from models import *
 from fastapi.routing import APIRoute
 
 from excerpt import router as excerpt_router
-from excerpt import get_books_info
+from excerpt import get_books_info, check_audio_file_exists
 from checks import router as checks_router
 from audio import router as audio_router
 from auth import (
@@ -212,18 +212,22 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
-        # Check if translation exists
-        cursor.execute("SELECT code FROM translations WHERE code = %s AND active = 1", (translation_code,))
+        # Check if translation exists and get alias
+        cursor.execute("SELECT code, alias FROM translations WHERE code = %s AND active = 1", (translation_code,))
         translation = cursor.fetchone()
         if not translation:
             raise HTTPException(status_code=404, detail=f"Translation {translation_code} not found")
         
-        # If voice_code is provided, check if voice exists
+        translation_alias = translation['alias']
+        voice_alias = None
+        
+        # If voice_code is provided, check if voice exists and get alias
         if voice_code:
-            cursor.execute("SELECT code FROM voices WHERE code = %s", (voice_code,))
+            cursor.execute("SELECT code, alias FROM voices WHERE code = %s", (voice_code,))
             voice = cursor.fetchone()
             if not voice:
                 raise HTTPException(status_code=404, detail=f"Voice {voice_code} not found")
+            voice_alias = voice['alias']
         
         # Get books for this translation with alias from bible_books
         if voice_code:
@@ -261,6 +265,32 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             ''', (translation_code,))
         
         books = cursor.fetchall()
+        
+        # If voice_code is provided, check for chapters without audio
+        if voice_code and voice_alias and translation_alias:
+            for book in books:
+                book_number = book['book_number']
+                book_code = book['code']
+                
+                # Get all chapter numbers for this book
+                cursor.execute('''
+                    SELECT DISTINCT chapter_number 
+                    FROM translation_verses 
+                    WHERE translation_book = %s
+                    ORDER BY chapter_number
+                ''', (book_code,))
+                
+                chapters = cursor.fetchall()
+                chapters_without_audio = []
+                
+                # Check each chapter for audio file existence
+                for chapter in chapters:
+                    chapter_number = chapter['chapter_number']
+                    if not check_audio_file_exists(translation_alias, voice_alias, book_number, chapter_number):
+                        chapters_without_audio.append(chapter_number)
+                
+                book['chapters_without_audio'] = chapters_without_audio
+        
         return books
         
     except Exception as e:

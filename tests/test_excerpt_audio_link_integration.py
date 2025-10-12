@@ -22,7 +22,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
 
     def test_excerpt_with_alignment_endpoint_exists(self):
         """Тест существования эндпоинта excerpt_with_alignment"""
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
         # Проверяем, что эндпоинт отвечает (не 404)
         self.assertNotEqual(response.status_code, 404)
 
@@ -31,7 +31,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
         """Тест audio_link когда аудиофайл существует"""
         mock_check_file.return_value = True
         
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
         
         if response.status_code == 200:
             data = response.json()
@@ -52,7 +52,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
         """Тест audio_link когда аудиофайл не существует"""
         mock_check_file.return_value = False
         
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
         
         if response.status_code == 200:
             data = response.json()
@@ -68,7 +68,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
 
     def test_audio_link_without_voice(self):
         """Тест audio_link когда voice не указан"""
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=jhn 3:16")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=jhn 3:16")
         
         if response.status_code == 200:
             data = response.json()
@@ -87,7 +87,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
         """Тест правильности формата audio_link"""
         mock_check_file.return_value = True
         
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=gen 1:1&voice=1")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=gen 1:1&voice=1")
         
         if response.status_code == 200:
             data = response.json()
@@ -101,7 +101,7 @@ class TestExcerptAudioLinkIntegration(unittest.TestCase):
 
     def test_excerpt_response_structure_with_audio_link(self):
         """Тест структуры ответа с полем audio_link"""
-        response = self.client.get("/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
+        response = self.client.get("/api/excerpt_with_alignment?translation=1&excerpt=jhn 3:16&voice=1")
         
         if response.status_code == 200:
             data = response.json()
