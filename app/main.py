@@ -168,14 +168,21 @@ def get_translations(language: Optional[str] = None, only_active: int = 1, api_k
 				a.description AS audio_description,
 				a.is_music    AS audio_is_music,
 				a.active      AS audio_active,
-				COALESCE(va.anomalies_count, 0) AS audio_anomalies_count
+				COALESCE(va.anomalies_count, 0) AS audio_anomalies_count,
+				COALESCE(va_open.anomalies_open_count, 0) AS audio_anomalies_open_count
             FROM translations AS t
               LEFT JOIN voices AS a ON a.translation = t.code
               LEFT JOIN (
                   SELECT voice, COUNT(*) as anomalies_count
                   FROM voice_anomalies
                   GROUP BY voice
-              ) AS va ON va.voice = a.code'''
+              ) AS va ON va.voice = a.code
+              LEFT JOIN (
+                  SELECT voice, COUNT(*) as anomalies_open_count
+                  FROM voice_anomalies
+                  WHERE status IN ('detected','confirmed')
+                  GROUP BY voice
+              ) AS va_open ON va_open.voice = a.code'''
         
         # Add active filter conditions based on only_active parameter
         if only_active == 1:
@@ -210,6 +217,7 @@ def get_translations(language: Optional[str] = None, only_active: int = 1, api_k
                     'is_music'    : row['audio_is_music'],
                     'active'      : row['audio_active'],
                     'anomalies_count': row['audio_anomalies_count'],
+                    'anomalies_open_count': row['audio_anomalies_open_count'],
                 })
         
         result = list(translations.values())

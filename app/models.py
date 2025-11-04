@@ -18,6 +18,7 @@ class VoiceModel(BaseModel):
     is_music: bool
     active: bool
     anomalies_count: int = 0
+    anomalies_open_count: int = 0
 
 class TranslationModel(BaseModel):
     code: int
