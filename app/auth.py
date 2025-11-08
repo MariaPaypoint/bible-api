@@ -1,9 +1,9 @@
 """
-Модуль авторизации для Bible API
+Authorization module for Bible API
 
-Поддерживает два уровня защиты:
-1. Статичный API ключ (X-API-Key) - для клиентских приложений
-2. JWT токены (Authorization: Bearer) - для административных операций
+Supports two levels of protection:
+1. Static API key (X-API-Key) - for client applications
+2. JWT tokens (Authorization: Bearer) - for administrative operations
 """
 
 from datetime import datetime, timedelta
@@ -14,11 +14,11 @@ from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
 
-# Импортируем конфигурацию
+# Import configuration
 try:
     from config import API_KEY, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRE_HOURS, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
 except ImportError:
-    # Значения по умолчанию для разработки (должны быть переопределены в config.py)
+    # Default values for development (should be overridden in config.py)
     API_KEY = "your-api-key-here"
     JWT_SECRET_KEY = "your-secret-key-here-change-in-production"
     JWT_ALGORITHM = "HS256"
@@ -26,31 +26,31 @@ except ImportError:
     ADMIN_USERNAME = "admin"
     ADMIN_PASSWORD_HASH = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW"  # "secret"
 
-# Схемы безопасности
+# Security schemes
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class Token(BaseModel):
-    """Модель токена доступа"""
+    """Access token model"""
     access_token: str
     token_type: str
     expires_in: int
 
 
 class TokenData(BaseModel):
-    """Данные из токена"""
+    """Data from token"""
     username: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
-    """Запрос на авторизацию"""
+    """Login request"""
     username: str
     password: str
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Проверка пароля"""
+    """Verify password"""
     try:
         return bcrypt.checkpw(
             plain_password.encode('utf-8'),
@@ -61,20 +61,20 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    """Получение хеша пароля"""
+    """Get password hash"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
-    Создание JWT токена
+    Create JWT token
     
     Args:
-        data: Данные для включения в токен
-        expires_delta: Время жизни токена (по умолчанию из конфига)
+        data: Data to include in the token
+        expires_delta: Token lifetime (default from config)
     
     Returns:
-        JWT токен
+        JWT token
     """
     to_encode = data.copy()
     if expires_delta:
@@ -89,9 +89,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> bool:
     """
-    Проверка статичного API ключа из заголовка X-API-Key
+    Verify static API key from X-API-Key header
     
-    Используется для публичных эндпоинтов (GET запросы)
+    Used for public endpoints (GET requests)
     """
     if api_key is None or api_key != API_KEY:
         raise HTTPException(
@@ -103,9 +103,9 @@ def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> bool:
 
 def verify_api_key_query(api_key: Optional[str] = None) -> bool:
     """
-    Проверка статичного API ключа из query параметра
+    Verify static API key from query parameter
     
-    Используется для аудио эндпоинта (браузер не может отправлять кастомные заголовки)
+    Used for audio endpoint (browser cannot send custom headers)
     """
     if api_key is None or api_key != API_KEY:
         raise HTTPException(
@@ -117,12 +117,12 @@ def verify_api_key_query(api_key: Optional[str] = None) -> bool:
 
 def verify_jwt_token(credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer_scheme)) -> str:
     """
-    Проверка JWT токена
+    Verify JWT token
     
-    Используется для административных эндпоинтов (POST/PUT/PATCH/DELETE)
+    Used for administrative endpoints (POST/PUT/PATCH/DELETE)
     
     Returns:
-        username из токена
+        username from token
     """
     if credentials is None:
         raise HTTPException(
@@ -151,14 +151,14 @@ def verify_jwt_token(credentials: Optional[HTTPAuthorizationCredentials] = Secur
 
 def authenticate_user(username: str, password: str) -> bool:
     """
-    Аутентификация пользователя по логину и паролю
+    Authenticate user by username and password
     
     Args:
-        username: Имя пользователя
-        password: Пароль
+        username: Username
+        password: Password
     
     Returns:
-        True если аутентификация успешна
+        True if authentication is successful
     """
     if username != ADMIN_USERNAME:
         return False
@@ -167,6 +167,6 @@ def authenticate_user(username: str, password: str) -> bool:
     return True
 
 
-# Зависимости для использования в эндпоинтах
+# Dependencies for use in endpoints
 RequireAPIKey = Depends(verify_api_key)
 RequireJWT = Depends(verify_jwt_token)

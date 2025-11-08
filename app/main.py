@@ -92,10 +92,10 @@ app = FastAPI(
     }
 )
 
-# Создаем основной роутер с префиксом /api
+# Create main router with /api prefix
 api_router = APIRouter(prefix="/api")
 
-# Подключаем роутеры к основному роутеру
+# Include routers to main router
 api_router.include_router(excerpt_router)
 api_router.include_router(checks_router)
 api_router.include_router(audio_router)
@@ -104,9 +104,9 @@ api_router.include_router(audio_router)
 @api_router.post('/auth/login', response_model=Token, operation_id="login", tags=["Auth"])
 def login(credentials: LoginRequest):
     """
-    Получить JWT токен для доступа к административным эндпоинтам
+    Get JWT token for access to administrative endpoints
     
-    Токен действителен 24 часа и должен передаваться в заголовке:
+    Token is valid for 24 hours and must be passed in the header:
     Authorization: Bearer <token>
     """
     if not authenticate_user(credentials.username, credentials.password):
@@ -125,7 +125,7 @@ def login(credentials: LoginRequest):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires_in": JWT_EXPIRE_HOURS * 3600  # в секундах
+        "expires_in": JWT_EXPIRE_HOURS * 3600  # in seconds
     }
 
 
@@ -403,11 +403,23 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
 @api_router.post('/cache/clear', operation_id="clear_cache", tags=["Admin"])
 def clear_cache(username: str = RequireJWT):
     """Clear all cached data (requires JWT authentication)"""
+    from excerpt import get_all_existing_audio_chapters, get_existing_audio_chapters, check_audio_file_exists
+    
     global _cache, _cache_timestamps
     cache_size = len(_cache)
     _cache.clear()
     _cache_timestamps.clear()
-    return {"message": f"Cache cleared successfully", "items_cleared": cache_size}
+    
+    # Clear LRU caches from excerpt.py
+    get_all_existing_audio_chapters.cache_clear()
+    get_existing_audio_chapters.cache_clear()
+    check_audio_file_exists.cache_clear()
+    
+    return {
+        "message": f"All caches cleared successfully", 
+        "items_cleared": cache_size,
+        "lru_caches_cleared": ["get_all_existing_audio_chapters", "get_existing_audio_chapters", "check_audio_file_exists"]
+    }
 
 
 @api_router.put('/translations/{translation_code}', response_model=TranslationModel, operation_id="update_translation", tags=["Translations"])
@@ -942,21 +954,21 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
 @api_router.post("/voices/manual-fixes", response_model=VoiceManualFixModel, operation_id="create_voice_manual_fix", tags=["Voices"])
 def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str = RequireJWT):
     """
-    Создать ручную корректировку времени для стиха
+    Create manual time correction for verse
     
-    Позволяет задать корректное время начала и окончания стиха без привязки к аномалии.
-    Если корректировка для данного стиха уже существует, она будет обновлена.
+    Allows setting correct start and end time for verse without linking to anomaly.
+    If correction for this verse already exists, it will be updated.
     """
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
-        # Проверяем, что голос существует
+        # Check that voice exists
         cursor.execute("SELECT code FROM voices WHERE code = %s", (fix_data.voice,))
         voice = cursor.fetchone()
         if not voice:
             raise HTTPException(status_code=404, detail=f"Voice {fix_data.voice} not found")
         
-        # Проверяем, что стих существует
+        # Check that verse exists
         cursor.execute(
             """
             SELECT tv.code FROM translation_verses tv
@@ -973,7 +985,7 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
                 detail=f"Verse not found: voice {fix_data.voice}, book {fix_data.book_number}, chapter {fix_data.chapter_number}, verse {fix_data.verse_number}"
             )
         
-        # Проверяем, существует ли уже корректировка для этого стиха
+        # Check if correction for this verse already exists
         cursor.execute(
             """
             SELECT code FROM voice_manual_fixes 
@@ -984,7 +996,7 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
         existing_fix = cursor.fetchone()
         
         if existing_fix:
-            # Обновляем существующую корректировку
+            # Update existing correction
             cursor.execute(
                 """
                 UPDATE voice_manual_fixes 
@@ -995,7 +1007,7 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
             )
             fix_id = existing_fix['code']
         else:
-            # Создаем новую корректировку
+            # Create new correction
             cursor.execute(
                 """
                 INSERT INTO voice_manual_fixes (voice, book_number, chapter_number, verse_number, begin, end, info)
@@ -1008,7 +1020,7 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
         
         connection.commit()
         
-        # Возвращаем созданную/обновленную корректировку
+        # Return created/updated correction
         cursor.execute(
             """
             SELECT code, voice, book_number, chapter_number, verse_number, begin, end, info
@@ -1034,5 +1046,5 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
         connection.close()
 
 
-# Подключаем основной роутер к приложению
+# Include main router to application
 app.include_router(api_router)

@@ -108,11 +108,11 @@ class VoiceUpdateModel(BaseModel):
 # Voice Anomalies
 
 class AnomalyStatus(str, Enum):
-    DETECTED = "detected"      # ошибка выявлена (по умолчанию)
-    CONFIRMED = "confirmed"    # ошибка подтверждена
-    DISPROVED = "disproved"    # ошибка опровергнута, не подтверждена проверкой
-    CORRECTED = "corrected"    # выполнена ручная коррекция
-    ALREADY_RESOLVED = "already_resolved" # уже исправлена ранее
+    DETECTED = "detected"      # error detected (default)
+    CONFIRMED = "confirmed"    # error confirmed
+    DISPROVED = "disproved"    # error disproved, not confirmed by verification
+    CORRECTED = "corrected"    # manual correction performed
+    ALREADY_RESOLVED = "already_resolved" # already fixed previously
 
 class VoiceAnomalyModel(BaseModel):
     code: int

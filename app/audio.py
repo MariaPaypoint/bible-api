@@ -1,5 +1,5 @@
 """
-Роутер для работы с аудиофайлами
+Router for working with audio files
 """
 
 from typing import Optional
@@ -19,14 +19,14 @@ router = APIRouter(prefix="/audio", tags=["Audio"])
 
 def get_voice_link_template(translation_alias: str, voice_alias: str) -> str:
     """
-    Получает link_template для голоса из базы данных
+    Gets link_template for voice from database
     
     Args:
-        translation_alias: Алиас перевода (например: syn, rst, bsb)
-        voice_alias: Алиас голоса (например: bondarenko, barry_hays)
+        translation_alias: Translation alias (e.g.: syn, rst, bsb)
+        voice_alias: Voice alias (e.g.: bondarenko, barry_hays)
         
     Returns:
-        Шаблон ссылки на аудиофайл или пустую строку, если не найден
+        Audio file link template or empty string if not found
     """
     try:
         connection = create_connection()
@@ -56,15 +56,15 @@ def get_voice_link_template(translation_alias: str, voice_alias: str) -> str:
 
 def format_audio_url(link_template: str, book: str, chapter: str) -> str:
     """
-    Форматирует URL аудиофайла на основе шаблона
+    Formats audio file URL based on template
     
     Args:
-        link_template: Шаблон ссылки
-        book: Номер книги
-        chapter: Номер главы
+        link_template: Link template
+        book: Book number
+        chapter: Chapter number
         
     Returns:
-        Отформатированный URL
+        Formatted URL
     """
     if not link_template:
         return ''
@@ -73,7 +73,7 @@ def format_audio_url(link_template: str, book: str, chapter: str) -> str:
         connection = create_connection()
         cursor = connection.cursor(dictionary=True)
         
-        # Получаем информацию о книге
+        # Get book information
         book_query = '''
             SELECT number, code1, code2, code3
             FROM bible_books
@@ -89,7 +89,7 @@ def format_audio_url(link_template: str, book: str, chapter: str) -> str:
         if not book_info:
             return ''
             
-        # Форматируем URL по аналогии с excerpt.py
+        # Format URL similar to excerpt.py
         formatted_url = link_template.format(
             book_zerofill=str(book_info['number']).zfill(2),
             chapter_zerofill=str(int(chapter)).zfill(2),
@@ -110,14 +110,14 @@ def format_audio_url(link_template: str, book: str, chapter: str) -> str:
 
 
 def parse_range_header(range_header: str, file_size: int):
-    """Парсит Range заголовок и возвращает start, end позиции"""
+    """Parses Range header and returns start, end positions"""
     if not range_header.startswith('bytes='):
         return None, None
     
     try:
-        range_spec = range_header[6:]  # убираем 'bytes='
+        range_spec = range_header[6:]  # remove 'bytes='
         if ',' in range_spec:
-            # Берем только первый диапазон для простоты
+            # Take only first range for simplicity
             range_spec = range_spec.split(',')[0]
         
         if '-' not in range_spec:
@@ -128,7 +128,7 @@ def parse_range_header(range_header: str, file_size: int):
         start = int(start_str) if start_str else 0
         end = int(end_str) if end_str else file_size - 1
         
-        # Убеждаемся что значения корректные
+        # Ensure values are correct
         start = max(0, start)
         end = min(file_size - 1, end)
         
@@ -142,9 +142,9 @@ def parse_range_header(range_header: str, file_size: int):
 
 
 def create_range_response(file_path: Path, range_header: Optional[str], translation: str = '', voice: str = '', book: str = '', chapter: str = ''):
-    """Создает Response с поддержкой Range requests"""
+    """Creates Response with Range requests support"""
     if not file_path.exists() or not file_path.is_file():
-        # Получаем корректный URL для файла
+        # Get correct URL for file
         link_template = get_voice_link_template(translation, voice)
         correct_url = format_audio_url(link_template, book, chapter)
         
@@ -158,17 +158,17 @@ def create_range_response(file_path: Path, range_header: Optional[str], translat
     file_size = file_path.stat().st_size
     file_stat = file_path.stat()
     
-    # Базовые заголовки
+    # Base headers
     base_headers = {
         "Accept-Ranges": "bytes",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "max-age=432000",  # 5 дней
+        "Cache-Control": "max-age=432000",  # 5 days
         "Connection": "keep-alive",
         "Last-Modified": datetime.fromtimestamp(file_stat.st_mtime).strftime('%a, %d %b %Y %H:%M:%S GMT'),
         "ETag": f'"{hex(hash(f"{file_stat.st_mtime}-{file_size}"))}"'
     }
     
-    # Если нет Range заголовка, возвращаем весь файл
+    # If no Range header, return entire file
     if not range_header:
         with open(file_path, 'rb') as f:
             content = f.read()
@@ -181,11 +181,11 @@ def create_range_response(file_path: Path, range_header: Optional[str], translat
             headers=base_headers
         )
     
-    # Парсим Range заголовок
+    # Parse Range header
     start, end = parse_range_header(range_header, file_size)
     
     if start is None or end is None:
-        # Невалидный Range, возвращаем 416
+        # Invalid Range, return 416
         return Response(
             status_code=416,
             headers={
@@ -194,14 +194,14 @@ def create_range_response(file_path: Path, range_header: Optional[str], translat
             }
         )
     
-    # Читаем нужную часть файла
+    # Read needed part of file
     content_length = end - start + 1
     
     with open(file_path, 'rb') as f:
         f.seek(start)
         content = f.read(content_length)
     
-    # Добавляем заголовки для partial content
+    # Add headers for partial content
     range_headers = base_headers.copy()
     range_headers.update({
         "Content-Range": f"bytes {start}-{end}/{file_size}",
@@ -218,21 +218,21 @@ def create_range_response(file_path: Path, range_header: Optional[str], translat
 
 def validate_audio_path(translation: str, voice: str, book: str, chapter: str) -> Path:
     """
-    Валидирует параметры и строит безопасный путь к файлу
+    Validates parameters and builds safe file path
     
     Args:
-        translation: Код перевода
-        voice: Код голоса  
-        book: Номер книги
-        chapter: Номер главы
+        translation: Translation code
+        voice: Voice code  
+        book: Book number
+        chapter: Chapter number
         
     Returns:
-        Путь к файлу
+        File path
         
     Raises:
-        HTTPException: При обнаружении небезопасных символов
+        HTTPException: When unsafe characters detected
     """
-    # Проверяем на небезопасные символы
+    # Check for unsafe characters
     for param_name, param_value in [
         ("translation", translation), 
         ("voice", voice), 
@@ -260,20 +260,20 @@ def get_audio_file(
     api_key: Optional[str] = None
 ):
     """
-    Возвращает mp3 файл с поддержкой HTTP Range requests для iOS/Android плееров
+    Returns mp3 file with HTTP Range requests support for iOS/Android players
     
     Args:
-        translation: Код перевода (например: syn, rst, bsb)
-        voice: Код голоса (например: bondarenko, barry_hays)  
-        book: Номер книги (например: 01, 19, 40)
-        chapter: Номер главы (например: 01, 14, 150)
-        request: HTTP запрос
-        api_key: API ключ (query параметр или заголовок X-API-Key)
+        translation: Translation code (e.g.: syn, rst, bsb)
+        voice: Voice code (e.g.: bondarenko, barry_hays)  
+        book: Book number (e.g.: 01, 19, 40)
+        chapter: Chapter number (e.g.: 01, 14, 150)
+        request: HTTP request
+        api_key: API key (query parameter or X-API-Key header)
         
     Returns:
-        Аудиофайл или его часть с корректными заголовками
+        Audio file or its part with correct headers
     """
-    # Обрабатываем OPTIONS запрос для CORS
+    # Handle OPTIONS request for CORS
     if request.method == "OPTIONS":
         return Response(
             headers={
@@ -284,20 +284,20 @@ def get_audio_file(
             }
         )
     
-    # Проверяем API ключ: сначала из query параметра, потом из заголовка
+    # Check API key: first from query parameter, then from header
     if api_key:
-        # API ключ передан как query параметр
+        # API key passed as query parameter
         verify_api_key_query(api_key)
     else:
-        # Проверяем заголовок X-API-Key
+        # Check X-API-Key header
         header_key = request.headers.get('x-api-key')
         verify_api_key_query(header_key)
     
-    # Валидируем и строим путь к файлу
+    # Validate and build file path
     file_path = validate_audio_path(translation, voice, book, chapter)
     
-    # Получаем Range заголовок
+    # Get Range header
     range_header = request.headers.get('range')
     
-    # Возвращаем ответ с поддержкой Range requests
+    # Return response with Range requests support
     return create_range_response(file_path, range_header, translation, voice, book, chapter) 

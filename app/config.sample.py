@@ -11,17 +11,17 @@ MP3_FILES_PATH = "audio"
 AUDIO_BASE_URL = "http://your-server:8000"
 
 # API Authorization settings
-# Статичный API ключ для клиентских приложений (GET запросы)
+# Static API key for client applications (GET requests)
 API_KEY = "your-api-key-here"
 
-# JWT настройки для административных операций
-# Сгенерируйте секретный ключ: openssl rand -hex 32
+# JWT settings for administrative operations
+# Generate secret key: openssl rand -hex 32
 JWT_SECRET_KEY = "your-secret-key-change-this-in-production"
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 24  # Токен действителен 24 часа
+JWT_EXPIRE_HOURS = 24  # Token is valid for 24 hours
 
-# Учетные данные администратора
+# Administrator credentials
 ADMIN_USERNAME = "admin"
-# Хеш пароля
-# Для генерации: python -c "import bcrypt; print(bcrypt.hashpw(b'your_password', bcrypt.gensalt()).decode('utf-8'))"
+# Password hash
+# To generate: python -c "import bcrypt; print(bcrypt.hashpw(b'your_password', bcrypt.gensalt()).decode('utf-8'))"
 ADMIN_PASSWORD_HASH = "your-bcrypt-password-hash"

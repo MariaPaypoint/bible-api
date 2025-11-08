@@ -14,21 +14,21 @@ def replace_anyof_with_string_type(data):
     if isinstance(data, dict):
         for key, value in data.items():
             if isinstance(value, dict):
-                # Проверяем наличие конструкции anyOf с необходимыми условиями
+                # Check for anyOf construct with required conditions
                 if 'anyOf' in value and isinstance(value['anyOf'], list):
                     types = {v.get('type') for v in value['anyOf'] if isinstance(v, dict)}
                     if types == {'string', 'null'}:
-                        # Сохраняем другие ключи и заменяем только anyOf на type: string
-                        value.pop('anyOf')  # Удаляем anyOf
-                        value['type'] = 'string'  # Добавляем type: string
+                        # Keep other keys and replace only anyOf with type: string
+                        value.pop('anyOf')  # Remove anyOf
+                        value['type'] = 'string'  # Add type: string
                     elif types == {'integer', 'null'}:
                         value.pop('anyOf')
                         value['type'] = 'integer'
                 else:
-                    # Рекурсивно обходим вложенные словари
+                    # Recursively traverse nested dictionaries
                     replace_anyof_with_string_type(value)
             elif isinstance(value, list):
-                # Рекурсивно обходим списки
+                # Recursively traverse lists
                 for item in value:
                     replace_anyof_with_string_type(item)
     elif isinstance(data, list):
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     openapi = app.openapi()
     version = openapi.get("openapi", "unknown version")
 
-    # hook для решения проблемы https://github.com/apple/swift-openapi-generator/issues/513#issuecomment-1911980259
+    # hook to solve the issue https://github.com/apple/swift-openapi-generator/issues/513#issuecomment-1911980259
     replace_anyof_with_string_type(openapi)
 
     print(f"writing openapi spec v{version}")
