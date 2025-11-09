@@ -202,11 +202,8 @@ def get_chapter_data(cursor, translation: int, book_info: dict, chapter_number: 
                 vmf.chapter_number = %(chapter_number)s AND 
                 vmf.verse_number = v.verse_number
             )
-        WHERE translation_book = (
-                SELECT code 
-                FROM translation_books 
-                WHERE translation=%(translation)s AND book_number=%(book_number)s
-            )
+        WHERE v.translation = %(translation)s
+            AND v.book_number = %(book_number)s
             AND v.chapter_number = %(chapter_number)s
     '''
     
@@ -392,7 +389,7 @@ async def get_chapter_with_alignment(translation: int, book_number: int, chapter
         # Получаем информацию о книге по номеру
         cursor.execute('''
             SELECT tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, bb.code5, bb.code6, bb.code7, bb.code8, bb.code9,
-                   (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+                   (SELECT max(chapter_number) FROM translation_verses WHERE book_number = tb.book_number) AS chapters_count
             FROM translation_books AS tb
             LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
             WHERE tb.translation = %s AND tb.book_number = %s
@@ -553,7 +550,7 @@ def get_books_info(cursor: any, translation: int, alias: str=None):
     sql = '''
         SELECT 
             tb.code, tb.book_number AS number, tb.name, bb.code1 AS alias, bb.code2, bb.code3, bb.code4, bb.code5, bb.code6, bb.code7, bb.code8, bb.code9,
-            (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+            (SELECT max(chapter_number) FROM translation_verses WHERE book_number = tb.book_number) AS chapters_count
         FROM translation_books AS tb
         LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
         WHERE tb.translation = %(translation)s

@@ -266,31 +266,31 @@ def get_chapters_by_book(translation_code: int) -> dict:
     connection = create_connection()
     cursor = connection.cursor(dictionary=True)
     try:
-        # Get all book codes for this translation
+        # Get all book numbers for this translation
         cursor.execute('''
-            SELECT code FROM translation_books WHERE translation = %s
+            SELECT book_number FROM translation_books WHERE translation = %s
         ''', (translation_code,))
-        book_codes = [row['code'] for row in cursor.fetchall()]
+        book_numbers = [row['book_number'] for row in cursor.fetchall()]
         
-        if not book_codes:
+        if not book_numbers:
             return {}
         
         # Get all chapters in one query
-        placeholders = ','.join(['%s'] * len(book_codes))
+        placeholders = ','.join(['%s'] * len(book_numbers))
         cursor.execute(f'''
-            SELECT translation_book, chapter_number
+            SELECT book_number, chapter_number
             FROM translation_verses
-            WHERE translation_book IN ({placeholders})
-            GROUP BY translation_book, chapter_number
-        ''', book_codes)
+            WHERE book_number IN ({placeholders})
+            GROUP BY book_number, chapter_number
+        ''', book_numbers)
         
         # Build map
         chapters_by_book = {}
         for row in cursor.fetchall():
-            book_code = row['translation_book']
-            if book_code not in chapters_by_book:
-                chapters_by_book[book_code] = set()
-            chapters_by_book[book_code].add(row['chapter_number'])
+            book_number = row['book_number']
+            if book_number not in chapters_by_book:
+                chapters_by_book[book_number] = set()
+            chapters_by_book[book_number].add(row['chapter_number'])
         
         return chapters_by_book
     finally:
@@ -326,7 +326,7 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             cursor.execute('''
                 SELECT 
                     tb.code, tb.book_number, tb.name, bb.code1 AS alias,
-                    (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count,
+                    (SELECT max(chapter_number) FROM translation_verses WHERE book_number = tb.book_number) AS chapters_count,
                     COALESCE(
                         (SELECT COUNT(*) FROM voice_anomalies va WHERE va.book_number = tb.book_number AND va.voice = %s), 
                         0
@@ -348,7 +348,7 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             cursor.execute('''
                 SELECT 
                     tb.code, tb.book_number, tb.name, bb.code1 AS alias,
-                    (SELECT max(chapter_number) FROM translation_verses WHERE translation_book = tb.code) AS chapters_count
+                    (SELECT max(chapter_number) FROM translation_verses WHERE book_number = tb.book_number) AS chapters_count
                 FROM translation_books AS tb
                 LEFT JOIN bible_books AS bb ON bb.number = tb.book_number
                 WHERE tb.translation = %s
@@ -367,7 +367,7 @@ def get_translation_books(translation_code: int, voice_code: Optional[int] = Non
             chapters_count = book['chapters_count'] or 0
             
             # Get existing chapters from pre-loaded data
-            existing_chapters = chapters_by_book.get(book_code, set())
+            existing_chapters = chapters_by_book.get(book_number, set())
             
             # Find chapters without text (missing in translation_verses)
             if chapters_count > 0:
@@ -699,8 +699,7 @@ def create_voice_anomaly(anomaly_data: VoiceAnomalyCreateModel, username: str = 
         cursor.execute(
             """
             SELECT tv.code FROM translation_verses tv
-            JOIN translation_books tb ON tv.translation_book = tb.code
-            WHERE tb.translation = %s AND tb.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
+            WHERE tv.translation = %s AND tv.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
             """,
             (anomaly_data.translation, anomaly_data.book_number, anomaly_data.chapter_number, anomaly_data.verse_number)
         )
@@ -972,9 +971,8 @@ def create_voice_manual_fix(fix_data: VoiceManualFixCreateModel, username: str =
         cursor.execute(
             """
             SELECT tv.code FROM translation_verses tv
-            JOIN translation_books tb ON tv.translation_book = tb.code
-            JOIN voices v ON v.translation = tb.translation
-            WHERE v.code = %s AND tb.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
+            JOIN voices v ON v.translation = tv.translation
+            WHERE v.code = %s AND tv.book_number = %s AND tv.chapter_number = %s AND tv.verse_number = %s
             """,
             (fix_data.voice, fix_data.book_number, fix_data.chapter_number, fix_data.verse_number)
         )

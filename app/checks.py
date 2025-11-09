@@ -16,13 +16,13 @@ def check_translation(translation: Optional[int], username: str = RequireJWT):
     try:
         # проверка пустых стихов
         sql = '''
-            SELECT tb.code AS book_code, tb.book_number, tb.name AS book_name, chapter_number, count(*) AS empty_verses_count
+            SELECT v.book_number, tb.name AS book_name, chapter_number, count(*) AS empty_verses_count
             FROM translation_verses AS v
-              LEFT JOIN translation_books AS tb ON tb.code = v.translation_book AND tb.translation = %(translation)s
-            WHERE text = ""
-              AND tb.book_number IS NOT NULL
+              LEFT JOIN translation_books AS tb ON tb.book_number = v.book_number AND tb.translation = v.translation
+            WHERE v.translation = %(translation)s
+              AND text = ""
               AND verse_number_join >= 0
-            GROUP BY tb.code, tb.book_number, tb.name, chapter_number
+            GROUP BY v.book_number, tb.name, chapter_number
         '''
         cursor.execute(sql, {
             'translation': translation
@@ -34,12 +34,8 @@ def check_translation(translation: Optional[int], username: str = RequireJWT):
         # проверка количества стихов по главам
         sql = '''
 			SELECT count(*) AS cc
-			FROM translation_verses
-            WHERE translation_book IN (
-                SELECT code 
-                FROM translation_books
-                WHERE translation = %(translation)s
-            )
+			FROM translation_verses AS tv
+            WHERE tv.translation = %(translation)s
 		'''
         cursor.execute(sql, {
             'translation': translation
@@ -50,8 +46,7 @@ def check_translation(translation: Optional[int], username: str = RequireJWT):
             sql = '''
                 SELECT s.book_number, s.chapter_number, s.verses_count AS must_verses_count, CONVERT(COUNT(tv.code) + IFNULL(SUM(tv.verse_number_join),0), SIGNED) AS translation_verses_count, s.tolerance_count
                 FROM bible_stat AS s
-                  LEFT JOIN translation_books AS tb ON tb.book_number = s.book_number AND tb.translation = %(translation)s
-                  LEFT JOIN translation_verses AS tv ON tv.translation_book = tb.code AND tv.chapter_number = s.chapter_number
+                  LEFT JOIN translation_verses AS tv ON tv.book_number = s.book_number AND tv.chapter_number = s.chapter_number AND tv.translation = %(translation)s
                 WHERE s.book_number != 19 #psalms
                 GROUP BY s.book_number, s.chapter_number, s.verses_count, s.tolerance_count
                 HAVING ABS(must_verses_count - translation_verses_count) > tolerance_count
@@ -92,12 +87,8 @@ def check_voice(voice: Optional[int], username: str = RequireJWT):
 
         sql = '''
 			SELECT count(*) AS cc
-			FROM translation_verses
-            WHERE translation_book IN (
-                SELECT code 
-                FROM translation_books
-                WHERE translation = (SELECT translation FROM voices WHERE code=%(voice)s)
-            )
+			FROM translation_verses AS tv
+            WHERE tv.translation = (SELECT translation FROM voices WHERE code=%(voice)s)
 		'''
         cursor.execute(sql, {
             'voice': voice
@@ -117,11 +108,7 @@ def check_voice(voice: Optional[int], username: str = RequireJWT):
               LEFT JOIN translation_verses AS tv ON (
                 tv.verse_number = va.verse_number AND 
                 tv.chapter_number = va.chapter_number AND
-                tv.translation_book IN (
-                  SELECT tb_inner.code 
-                  FROM translation_books tb_inner 
-                  WHERE tb_inner.book_number = va.book_number
-                )
+                tv.book_number = va.book_number
               )
               LEFT JOIN translation_books AS tb ON tb.book_number = va.book_number
             WHERE va.voice = %(voice)s
@@ -146,11 +133,7 @@ def check_voice(voice: Optional[int], username: str = RequireJWT):
               LEFT JOIN translation_verses AS tv ON (
                 tv.verse_number = va.verse_number AND 
                 tv.chapter_number = va.chapter_number AND
-                tv.translation_book IN (
-                  SELECT tb_inner.code 
-                  FROM translation_books tb_inner 
-                  WHERE tb_inner.book_number = va.book_number
-                )
+                tv.book_number = va.book_number
               )
               LEFT JOIN translation_books AS tb ON tb.book_number = va.book_number
               LEFT JOIN voice_alignments AS next_va ON next_va.code = va.code+1
