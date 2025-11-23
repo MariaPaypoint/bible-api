@@ -2,6 +2,7 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Literal
 from enum import Enum
+from datetime import datetime
 
 # Languages & Translations
 
@@ -130,6 +131,7 @@ class VoiceAnomalyModel(BaseModel):
     anomaly_type: str = 'fast'  # Changed from Optional[str] to str (NOT NULL)
     status: AnomalyStatus = AnomalyStatus.DETECTED
     verse_text: Optional[str] = None
+    updated_at: Optional[datetime] = None
 
 class VoiceAnomaliesResponseModel(BaseModel):
     items: list[VoiceAnomalyModel]

@@ -651,7 +651,7 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
             SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
                    va.verse_number, va.word, va.position_in_verse, va.position_from_end,
                    va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
-                   tv.text AS verse_text
+                   tv.text AS verse_text, va.updated_at
             FROM voice_anomalies AS va
             LEFT JOIN translation_verses tv ON (
                 tv.code = va.translation_verse_id
@@ -902,10 +902,10 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
         cursor.execute(
             """
             UPDATE voice_anomalies 
-            SET status = %s 
+            SET status = %s, updated_at = CASE WHEN status != %s THEN CURRENT_TIMESTAMP ELSE updated_at END
             WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s
             """,
-            (update_data.status.value, anomaly['voice'], anomaly['book_number'], 
+            (update_data.status.value, update_data.status.value, anomaly['voice'], anomaly['book_number'], 
              anomaly['chapter_number'], anomaly['verse_number'])
         )
         
@@ -916,7 +916,7 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
             """
             SELECT va.code, va.voice, va.translation, va.book_number, va.chapter_number, 
                    va.verse_number, va.word, va.position_in_verse, va.position_from_end,
-                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status,
+                   va.duration, va.speed, va.ratio, va.anomaly_type, va.status, va.updated_at,
                    al.begin AS verse_start_time, al.end AS verse_end_time,
                    tv.text AS verse_text
             FROM voice_anomalies AS va
