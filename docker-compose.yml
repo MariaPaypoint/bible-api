@@ -10,6 +10,8 @@ services:
       - 80:8000
     volumes:
       - ./:/code/
+      # depends on installation
+      - ../php-parser:/php-parser:ro
     restart: always
     #networks:
     #  mysql_mysql_net:
