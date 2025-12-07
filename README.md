@@ -216,7 +216,7 @@ cp app/config.sample.py app/config.py
 
 3. Выполните миграции:
 ```bash
-python migrations/migration_manager.py migrate
+docker compose exec bible-api python3 migrate.py migrate
 ```
 
 **Примечание**: Миграции для рефакторинга `voice_alignments` уже выполнены:
@@ -276,23 +276,31 @@ PYTHONPATH=/root/cep/bible-api/app pytest tests/ -v
 
 ## Миграции
 
-Система использует собственный механизм миграций для управления схемой базы данных.
+Система использует собственный механизм миграций для управления схемой базы данных. Рекомендуется запускать миграции внутри Docker-контейнера.
+
+  > [!TIP]
+  > Вместо `migrate.py` можно также использовать `migrations/migration_manager.py`, но `migrate.py` короче и удобнее.
 
 ```bash
 # Выполнить все ожидающие миграции
-python migrations/migration_manager.py migrate
+docker compose exec bible-api python3 migrate.py migrate
 
 # Создать новую миграцию
-python migrations/migration_manager.py create --name "migration_name"
+docker compose exec bible-api python3 migrate.py create "migration_name"
 
 # Показать статус миграций
-python migrations/migration_manager.py status
+docker compose exec bible-api python3 migrate.py status
 
 # Откатить миграцию (только отметить как не выполненную)
-python migrations/migration_manager.py rollback --file "migration_file.sql"
+docker compose exec bible-api python3 migrate.py rollback "migration_file.sql"
 
 # Отметить миграцию как выполненную без запуска
-python migrations/migration_manager.py mark-executed --file "migration_file.sql"
+docker compose exec bible-api python3 migrate.py mark-executed "migration_file.sql"
+```
+
+Для локального запуска (если у вас настроено окружение):
+```bash
+python3 migrate.py migrate
 ```
 
 Подробнее см. [migrations/README.md](migrations/README.md)

@@ -277,7 +277,7 @@ def get_chapter_data(cursor, translation: int, book_info: dict, chapter_number: 
     
     # Заголовки
     titles_query = '''
-        SELECT code, text, before_translation_verse, metadata, reference
+        SELECT code, text, before_translation_verse, metadata, reference, subtitle, position_text, position_html
         FROM translation_titles
         WHERE before_translation_verse IN (%s)
     ''' % codes
@@ -291,7 +291,10 @@ def get_chapter_data(cursor, translation: int, book_info: dict, chapter_number: 
             text=title['text'],
             before_verse_code=title['before_translation_verse'],
             metadata=title['metadata'],
-            reference=title['reference']
+            reference=title['reference'],
+            subtitle=bool(title['subtitle']),
+            position_text=title['position_text'],
+            position_html=title['position_html']
         )
         titles.append(title_model)
         title_codes.append(str(title['code']))
