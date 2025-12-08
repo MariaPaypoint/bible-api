@@ -71,7 +71,7 @@ class NoteModel(BaseModel):
 class TitleModel(BaseModel):
     code: int
     text: str
-    before_verse_code: int
+    before_verse_code: Optional[int] = None
     metadata: Optional[str] = None
     reference: Optional[str] = None
     subtitle: bool = False

@@ -930,8 +930,8 @@ components:
           type: string
           title: Text
         before_verse_code:
-          type: integer
           title: Before Verse Code
+          type: integer
         metadata:
           title: Metadata
           type: string
@@ -952,7 +952,6 @@ components:
       required:
       - code
       - text
-      - before_verse_code
       title: TitleModel
     Token:
       properties:
