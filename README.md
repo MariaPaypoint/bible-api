@@ -310,5 +310,6 @@ python3 migrate.py migrate
 ## Документация
 
 - **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Docker команды, структура проекта, ключевые таблицы БД
+- **[docs/REVERSE_PROXY_SETUP.md](docs/REVERSE_PROXY_SETUP.md)** - схема портов, Nginx reverse proxy и маршрутизация yourdomain.com/api.yourdomain.com
 - **[docs/SECURITY.md](docs/SECURITY.md)** - таблица защиты всех эндпоинтов, примеры авторизации
 - **[docs/TESTING.md](docs/TESTING.md)** - ⚠️ запуск тестов (ВАЖНО! integration тесты используют БД)
