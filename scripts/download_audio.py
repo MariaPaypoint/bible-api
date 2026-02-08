@@ -17,9 +17,11 @@ already available via `.env`.
 from __future__ import annotations
 
 import argparse
+import atexit
 import os
 import sys
 import time
+import fcntl
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -203,6 +205,30 @@ def _dest_path(output_root: Path, voice: Voice, book_number: int, chapter: int) 
     return output_root / voice.translation_alias / voice.voice_alias / "mp3" / book0 / f"{chapter0}.mp3"
 
 
+
+
+def _acquire_lock(lock_path: Path) -> int:
+    # Exclusive advisory lock; auto-released on process exit.
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise
+
+    os.ftruncate(fd, 0)
+    os.write(fd, f"pid={os.getpid()}\n".encode("utf-8"))
+
+    def _cleanup() -> None:
+        try:
+            os.close(fd)
+        except Exception:
+            pass
+
+    atexit.register(_cleanup)
+    return fd
+
 def _requests_session(user_agent: str, retries: int, backoff: float) -> requests.Session:
     s = requests.Session()
     retry = Retry(
@@ -283,6 +309,7 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="Do not download, only print planned actions.")
     ap.add_argument("--no-skip-existing", action="store_true", help="Re-download even if destination file exists.")
     ap.add_argument("--yes", action="store_true", help="Required to actually download (safety flag).")
+    ap.add_argument("--lock-file", default="", help="Lock file path to prevent concurrent runs (default: <output-root>/.download_audio.lock).")
     args = ap.parse_args()
 
     output_root = Path(args.output_root).resolve()
@@ -291,6 +318,14 @@ def main() -> int:
     if not args.dry_run and not args.yes:
         print("Refusing to run without --yes (this may download tens of GB). Use --dry-run to preview.")
         return 2
+    lock_file = Path(args.lock_file) if args.lock_file else (output_root / '.download_audio.lock')
+    if not args.dry_run:
+        try:
+            _acquire_lock(lock_file)
+            print(f'Lock acquired: {lock_file} (pid={os.getpid()})')
+        except BlockingIOError:
+            print(f'Another download is already running (lock busy): {lock_file}', file=sys.stderr)
+            return 2
 
     conn = _mysql_connect()
     try:
