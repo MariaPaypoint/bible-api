@@ -6,6 +6,8 @@ services:
       - "8000"
     env_file:
       - .env
+    volumes:
+      - /root/cep/audio:/audio
     restart: always
     networks:
       - mysql_default

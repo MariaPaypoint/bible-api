@@ -190,7 +190,26 @@ GET /excerpt_with_alignment?translation=16&excerpt=jhn 3:16-17&voice=1
 
 В ответе поля `begin` и `end` для каждого стиха будут содержать актуальные временные метки с учетом всех корректировок.
 
-## Установка и запуск
+
+## Скачивание аудио (MP3)
+
+Аудио-файлы хранятся в структуре:
+
+
+
+Где  берется из БД () и заполняется плейсхолдерами по аналогии с .
+
+Скрипт скачивания находится в  и берёт активные голоса из БД:
+
+- 
+- 
+
+Запуск (внутри контейнера ):
+
+
+
+По умолчанию файлы пишутся в  (обычно  внутри контейнера).
+
 
 ### Установка зависимостей
 
@@ -313,3 +332,32 @@ python3 migrate.py migrate
 - **[docs/REVERSE_PROXY_SETUP.md](docs/REVERSE_PROXY_SETUP.md)** - схема портов, Nginx reverse proxy и маршрутизация yourdomain.com/api.yourdomain.com
 - **[docs/SECURITY.md](docs/SECURITY.md)** - таблица защиты всех эндпоинтов, примеры авторизации
 - **[docs/TESTING.md](docs/TESTING.md)** - ⚠️ запуск тестов (ВАЖНО! integration тесты используют БД)
+
+## Скачивание аудио (MP3)
+
+Аудио-файлы хранятся в структуре:
+
+`<MP3_FILES_PATH>/<translation_alias>/<voice_alias>/mp3/<book_zerofill>/<chapter_zerofill>.mp3`
+
+Где `link_template` берется из БД (`voices.link_template`) и заполняется плейсхолдерами по аналогии с `/root/cep/php-parser/include.php:get_chapter_audio_url`.
+
+Скрипт скачивания: `scripts/download_audio.py`.
+
+Он скачивает mp3 для всех активных голосов из БД:
+- `voices.active = 1`
+- `translations.active = 1`
+
+Запуск (внутри контейнера `bible-api`):
+
+```bash
+# посмотреть, что будет скачиваться (без скачивания)
+docker exec bible-api python3 /code/scripts/download_audio.py --dry-run
+
+# скачать всё (может быть десятки ГБ)
+docker exec bible-api python3 /code/scripts/download_audio.py --yes --max-workers 8
+
+# скачать только один перевод/голос
+docker exec bible-api python3 /code/scripts/download_audio.py --yes --translation-alias syn --voice-alias bondarenko
+```
+
+По умолчанию файлы пишутся в `MP3_FILES_PATH` (обычно `/audio` внутри контейнера).
