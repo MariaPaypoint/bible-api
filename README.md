@@ -209,10 +209,10 @@ pip install pytest requests
 
 1. Создайте runtime-переменные окружения для контейнера:
 ```bash
-cp app.env.example app.env
+cp .env.example .env
 ```
 
-2. Отредактируйте `app.env` (DB_*, API_KEY, JWT_*, ADMIN_*). Для `ADMIN_PASSWORD_HASH` используйте формат с `$$` (например `$$2b$$12$$...`).
+2. Отредактируйте `.env` (DB_*, API_KEY, JWT_*, ADMIN_*). Для `ADMIN_PASSWORD_HASH` используйте формат с `$$` (например `$$2b$$12$$...`).
 
 3. Выполните миграции:
 ```bash

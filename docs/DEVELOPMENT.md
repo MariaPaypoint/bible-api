@@ -4,8 +4,8 @@
 
 ```bash
 # Настройка runtime-переменных
-cp app.env.example app.env
-nano app.env
+cp .env.example .env
+nano .env
 
 # Запуск в Docker (production mode)
 docker compose up -d --build

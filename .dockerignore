@@ -5,7 +5,4 @@ __pycache__
 .pytest_cache
 .env
 .env.*
-app.env
-app.env.*
 !.env.example
-!app.env.example
