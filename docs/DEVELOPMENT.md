@@ -3,12 +3,12 @@
 ## Быстрый старт
 
 ```bash
-# Настройка конфигурации
-cp app/config.sample.py app/config.py
-nano app/config.py
+# Настройка runtime-переменных
+cp app.env.example app.env
+nano app.env
 
-# Запуск в Docker
-docker compose up -d
+# Запуск в Docker (production mode)
+docker compose up -d --build
 
 # Swagger UI
 open http://localhost:8000/docs
@@ -17,8 +17,11 @@ open http://localhost:8000/docs
 ## Docker команды
 
 ```bash
-# Запуск
-docker compose up -d
+# Прод-режим
+docker compose up -d --build
+
+# Dev-режим (override)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # Логи
 docker logs bible-api -f
@@ -26,11 +29,11 @@ docker logs bible-api -f
 # Перезапуск
 docker compose restart
 
-# Остановка
+# Остановка (prod)
 docker compose down
 
-# Пересборка
-docker compose build --no-cache
+# Остановка (dev)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
 
 ## Миграции
@@ -65,7 +68,7 @@ app/
 ├── checks.py         # Проверки БД
 ├── models.py         # Pydantic модели
 ├── database.py       # Подключение к БД
-└── config.py         # Конфигурация (не в git)
+└── config.py         # Конфигурация из переменных окружения
 ```
 
 ## Таблицы БД

@@ -207,12 +207,12 @@ pip install pytest requests
 
 ### Настройка базы данных
 
-1. Скопируйте файл конфигурации:
+1. Создайте runtime-переменные окружения для контейнера:
 ```bash
-cp app/config.sample.py app/config.py
+cp app.env.example app.env
 ```
 
-2. Отредактируйте `app/config.py` с вашими настройками базы данных.
+2. Отредактируйте `app.env` (DB_*, API_KEY, JWT_*, ADMIN_*). Для `ADMIN_PASSWORD_HASH` используйте формат с `$$` (например `$$2b$$12$$...`).
 
 3. Выполните миграции:
 ```bash
@@ -227,10 +227,10 @@ docker compose exec bible-api python3 migrate.py migrate
 
 ### Запуск сервера
 
-#### Вариант 1: Через Docker (рекомендуется)
+#### Вариант 1: Прод-режим через Docker (по умолчанию)
 ```bash
-# Запуск в фоновом режиме
-docker compose up -d
+# Запуск в фоне (production mode)
+docker compose up -d --build
 
 # Проверить статус
 docker compose ps
@@ -243,12 +243,14 @@ docker compose down
 ```
 Сервер будет доступен на: http://localhost:8000
 
-#### Вариант 2: Локальный запуск
+#### Вариант 2: Dev-режим через Docker override
 ```bash
-# Запуск в режиме разработки
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+# Запуск с override (development mode + bind mounts)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# Остановить
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
-Сервер будет доступен на: http://localhost:8001
 
 #### Проверка работы
 ```bash
