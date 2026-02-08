@@ -6,3 +6,6 @@ services:
     volumes:
       - ./:/code/
       - ../php-parser:/php-parser:ro
+
+  web:
+    profiles: ["prod"]
