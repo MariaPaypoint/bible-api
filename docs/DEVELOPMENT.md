@@ -11,7 +11,7 @@ nano .env
 docker compose up -d --build
 
 # Swagger UI
-open http://localhost:8000/docs
+open http://localhost/docs
 ```
 
 ## Docker команды

@@ -11,14 +11,14 @@ API использует двухуровневую систему автори�
 
 ```bash
 # Публичные эндпоинты
-curl -H "X-API-Key: bible-api-key-2024" http://localhost:8000/translations
+curl -H "X-API-Key: bible-api-key-2024" http://localhost/translations
 
 # Административные эндпоинты
-TOKEN=$(curl -X POST http://localhost:8000/auth/login \
+TOKEN=$(curl -X POST http://localhost/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
 
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/voices/1/anomalies
+curl -H "Authorization: Bearer $TOKEN" http://localhost/voices/1/anomalies
 ```
 
 📖 **Документация:** [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)  
@@ -241,7 +241,7 @@ docker logs bible-api
 # Остановить
 docker compose down
 ```
-Сервер будет доступен на: http://localhost:8000
+Сервер будет доступен на: http://localhost
 
 #### Вариант 2: Dev-режим через Docker override
 ```bash
@@ -255,7 +255,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 #### Проверка работы
 ```bash
 # Swagger UI (Docker)
-curl http://localhost:8000/docs
+curl http://localhost/docs
 
 # Swagger UI (локальный запуск)
 curl http://localhost:8001/docs
