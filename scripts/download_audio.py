@@ -22,6 +22,7 @@ import os
 import sys
 import time
 import fcntl
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -53,6 +54,22 @@ class Book:
     code7: str
     code8: str
     code9: str
+
+
+_FAIL_LINE_RE = re.compile(r"^FAIL .*?: (https?://\\S+) -> (\\S+)\\s*$")
+
+
+def _parse_fail_log(path: Path) -> List[Tuple[str, Path]]:
+    jobs: List[Tuple[str, Path]] = []
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            m = _FAIL_LINE_RE.match(line)
+            if not m:
+                continue
+            url = m.group(1)
+            dest = Path(m.group(2))
+            jobs.append((url, dest))
+    return jobs
 
 
 def _env_int(name: str, default: int) -> int:
@@ -260,6 +277,7 @@ def _download_one(
     timeout: float,
     dry_run: bool,
     skip_existing: bool,
+    missing_policy: str,
 ) -> Tuple[bool, str]:
     if skip_existing and dest.exists() and dest.stat().st_size > 0:
         return True, "exists"
@@ -272,6 +290,8 @@ def _download_one(
 
     r = session.get(url, stream=True, timeout=timeout, allow_redirects=True)
     if r.status_code != 200:
+        if missing_policy == "skip" and r.status_code in (404, 410):
+            return True, f"missing:{r.status_code}"
         return False, f"http {r.status_code}"
 
     # Basic sanity check: make sure we are not saving HTML error pages.
@@ -310,6 +330,8 @@ def main() -> int:
     ap.add_argument("--no-skip-existing", action="store_true", help="Re-download even if destination file exists.")
     ap.add_argument("--yes", action="store_true", help="Required to actually download (safety flag).")
     ap.add_argument("--lock-file", default="", help="Lock file path to prevent concurrent runs (default: <output-root>/.download_audio.lock).")
+    ap.add_argument("--retry-from-log", default="", help="Retry only failed downloads from a previous run log file (lines starting with 'FAIL ...').")
+    ap.add_argument("--missing-policy", choices=("error", "skip"), default="error", help="How to treat missing files (HTTP 404/410). 'skip' will not count them as failures.")
     args = ap.parse_args()
 
     output_root = Path(args.output_root).resolve()
@@ -327,39 +349,6 @@ def main() -> int:
             print(f'Another download is already running (lock busy): {lock_file}', file=sys.stderr)
             return 2
 
-    conn = _mysql_connect()
-    try:
-        voices = _fetch_active_voices(conn)
-        books = _fetch_books(conn)
-        chapter_counts = _fetch_chapter_counts(conn)
-    finally:
-        conn.close()
-
-    if args.translation_alias:
-        allow = set(args.translation_alias)
-        voices = [v for v in voices if v.translation_alias in allow]
-
-    if args.voice_alias:
-        allow = set(args.voice_alias)
-        voices = [v for v in voices if v.voice_alias in allow]
-
-    # Skip voices without templates.
-    voices_no_template = [v for v in voices if not v.link_template]
-    voices = [v for v in voices if v.link_template]
-
-    if voices_no_template:
-        print("Skipping voices without link_template:")
-        for v in voices_no_template:
-            print(f"  - {v.translation_alias}/{v.voice_alias} (voice_code={v.voice_code})")
-
-    total_tasks = 0
-    for v in voices:
-        total_tasks += sum(chapter_counts.get(bn, 0) for bn in chapter_counts.keys())
-
-    print(f"Output root: {output_root}")
-    print(f"Voices: {len(voices)}")
-    print(f"Planned chapter downloads (upper bound): {total_tasks}")
-
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     session = _requests_session(args.user_agent, args.retries, args.backoff)
@@ -370,18 +359,70 @@ def main() -> int:
 
     start = time.time()
 
-    def iter_jobs() -> Iterable[Tuple[str, Path]]:
-        for v in voices:
-            for book_number, max_ch in sorted(chapter_counts.items()):
-                book = books.get(book_number)
-                if not book:
-                    continue
-                for ch in range(1, max_ch + 1):
-                    url = _build_url(v, book, ch)
-                    dest = _dest_path(output_root, v, book_number, ch)
-                    yield url, dest
+    if args.retry_from_log:
+        log_path = Path(args.retry_from_log)
+        if not log_path.exists():
+            print(f"--retry-from-log file not found: {log_path}", file=sys.stderr)
+            return 2
+        jobs = _parse_fail_log(log_path)
+        # Keep only destinations under output_root (safety).
+        filtered: List[Tuple[str, Path]] = []
+        for url, dest in jobs:
+            try:
+                if dest.resolve().is_relative_to(output_root):
+                    filtered.append((url, dest))
+            except Exception:
+                # If resolve fails, skip.
+                pass
+        jobs = filtered
+        print(f"Output root: {output_root}")
+        print(f"Retry mode: {len(jobs)} failed jobs from {log_path}")
+    else:
+        conn = _mysql_connect()
+        try:
+            voices = _fetch_active_voices(conn)
+            books = _fetch_books(conn)
+            chapter_counts = _fetch_chapter_counts(conn)
+        finally:
+            conn.close()
 
-    jobs = list(iter_jobs())
+        if args.translation_alias:
+            allow = set(args.translation_alias)
+            voices = [v for v in voices if v.translation_alias in allow]
+
+        if args.voice_alias:
+            allow = set(args.voice_alias)
+            voices = [v for v in voices if v.voice_alias in allow]
+
+        # Skip voices without templates.
+        voices_no_template = [v for v in voices if not v.link_template]
+        voices = [v for v in voices if v.link_template]
+
+        if voices_no_template:
+            print("Skipping voices without link_template:")
+            for v in voices_no_template:
+                print(f"  - {v.translation_alias}/{v.voice_alias} (voice_code={v.voice_code})")
+
+        total_tasks = 0
+        for _v in voices:
+            total_tasks += sum(chapter_counts.get(bn, 0) for bn in chapter_counts.keys())
+
+        print(f"Output root: {output_root}")
+        print(f"Voices: {len(voices)}")
+        print(f"Planned chapter downloads (upper bound): {total_tasks}")
+
+        def iter_jobs() -> Iterable[Tuple[str, Path]]:
+            for v in voices:
+                for book_number, max_ch in sorted(chapter_counts.items()):
+                    book = books.get(book_number)
+                    if not book:
+                        continue
+                    for ch in range(1, max_ch + 1):
+                        url = _build_url(v, book, ch)
+                        dest = _dest_path(output_root, v, book_number, ch)
+                        yield url, dest
+
+        jobs = list(iter_jobs())
 
     if args.dry_run:
         for url, dest in jobs[:50]:
@@ -396,7 +437,7 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=args.max_workers) as ex:
         futs = {}
         for url, dest in jobs:
-            fut = ex.submit(_download_one, session, url, dest, args.timeout, False, skip_existing)
+            fut = ex.submit(_download_one, session, url, dest, args.timeout, False, skip_existing, args.missing_policy)
             futs[fut] = (url, dest)
 
         last_report = 0.0
@@ -408,7 +449,7 @@ def main() -> int:
                 success, msg = False, f"exc {type(e).__name__}: {e}"
 
             if success:
-                if msg == "exists":
+                if msg == "exists" or msg.startswith("missing:"):
                     skipped += 1
                 else:
                     ok += 1
