@@ -1,5 +1,7 @@
 venv/
 __pycache__/
-config.py
 .vscode/settings.json
 audio/
+.env
+.env.*
+!.env.example

@@ -11,14 +11,14 @@ API использует двухуровневую систему автори�
 
 ```bash
 # Публичные эндпоинты
-curl -H "X-API-Key: bible-api-key-2024" http://localhost:8000/translations
+curl -H "X-API-Key: bible-api-key-2024" http://localhost/translations
 
 # Административные эндпоинты
-TOKEN=$(curl -X POST http://localhost:8000/auth/login \
+TOKEN=$(curl -X POST http://localhost/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
 
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/voices/1/anomalies
+curl -H "Authorization: Bearer $TOKEN" http://localhost/voices/1/anomalies
 ```
 
 📖 **Документация:** [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)  
@@ -190,7 +190,26 @@ GET /excerpt_with_alignment?translation=16&excerpt=jhn 3:16-17&voice=1
 
 В ответе поля `begin` и `end` для каждого стиха будут содержать актуальные временные метки с учетом всех корректировок.
 
-## Установка и запуск
+
+## Скачивание аудио (MP3)
+
+Аудио-файлы хранятся в структуре:
+
+
+
+Где  берется из БД () и заполняется плейсхолдерами по аналогии с .
+
+Скрипт скачивания находится в  и берёт активные голоса из БД:
+
+- 
+- 
+
+Запуск (внутри контейнера ):
+
+
+
+По умолчанию файлы пишутся в  (обычно  внутри контейнера).
+
 
 ### Установка зависимостей
 
@@ -207,12 +226,12 @@ pip install pytest requests
 
 ### Настройка базы данных
 
-1. Скопируйте файл конфигурации:
+1. Создайте runtime-переменные окружения для контейнера:
 ```bash
-cp app/config.sample.py app/config.py
+cp .env.example .env
 ```
 
-2. Отредактируйте `app/config.py` с вашими настройками базы данных.
+2. Отредактируйте `.env` (DB_*, API_KEY, JWT_*, ADMIN_*). Для `ADMIN_PASSWORD_HASH` используйте формат с `$$` (например `$$2b$$12$$...`).
 
 3. Выполните миграции:
 ```bash
@@ -227,10 +246,10 @@ docker compose exec bible-api python3 migrate.py migrate
 
 ### Запуск сервера
 
-#### Вариант 1: Через Docker (рекомендуется)
+#### Вариант 1: Прод-режим через Docker (по умолчанию)
 ```bash
-# Запуск в фоновом режиме
-docker compose up -d
+# Запуск в фоне (production mode)
+docker compose up -d --build
 
 # Проверить статус
 docker compose ps
@@ -241,19 +260,21 @@ docker logs bible-api
 # Остановить
 docker compose down
 ```
-Сервер будет доступен на: http://localhost:8000
+Сервер будет доступен на: http://localhost
 
-#### Вариант 2: Локальный запуск
+#### Вариант 2: Dev-режим через Docker override
 ```bash
-# Запуск в режиме разработки
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+# Запуск с override (development mode + bind mounts)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# Остановить
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
-Сервер будет доступен на: http://localhost:8001
 
 #### Проверка работы
 ```bash
 # Swagger UI (Docker)
-curl http://localhost:8000/docs
+curl http://localhost/docs
 
 # Swagger UI (локальный запуск)
 curl http://localhost:8001/docs
@@ -308,5 +329,48 @@ python3 migrate.py migrate
 ## Документация
 
 - **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Docker команды, структура проекта, ключевые таблицы БД
+- **[docs/REVERSE_PROXY_SETUP.md](docs/REVERSE_PROXY_SETUP.md)** - схема портов, Nginx reverse proxy и маршрутизация yourdomain.com/api.yourdomain.com
 - **[docs/SECURITY.md](docs/SECURITY.md)** - таблица защиты всех эндпоинтов, примеры авторизации
 - **[docs/TESTING.md](docs/TESTING.md)** - ⚠️ запуск тестов (ВАЖНО! integration тесты используют БД)
+
+## Скачивание аудио (MP3)
+
+Аудио-файлы хранятся в структуре:
+
+`<MP3_FILES_PATH>/<translation_alias>/<voice_alias>/mp3/<book_zerofill>/<chapter_zerofill>.mp3`
+
+Где `link_template` берется из БД (`voices.link_template`) и заполняется плейсхолдерами по аналогии с `/root/cep/php-parser/include.php:get_chapter_audio_url`.
+
+Скрипт скачивания: `scripts/download_audio.py`.
+
+Он скачивает mp3 для всех активных голосов из БД:
+- `voices.active = 1`
+- `translations.active = 1`
+
+Запуск (внутри контейнера `bible-api`):
+
+```bash
+# посмотреть, что будет скачиваться (без скачивания)
+docker exec bible-api python3 /code/scripts/download_audio.py --dry-run
+
+# скачать всё (может быть десятки ГБ)
+docker exec bible-api python3 /code/scripts/download_audio.py --yes --max-workers 8
+
+# скачать только один перевод/голос
+docker exec bible-api python3 /code/scripts/download_audio.py --yes --translation-alias syn --voice-alias bondarenko
+```
+
+По умолчанию файлы пишутся в `MP3_FILES_PATH` (обычно `/audio` внутри контейнера).
+
+## Compose bind mounts (AUDIO_DIR / SITE_DIR)
+
+`docker-compose.yml` uses host bind mounts and expects these variables in `.env`:
+
+- `AUDIO_DIR` (required): host directory with downloaded mp3 files. It will be mounted into the API container as `/audio`.
+- `SITE_DIR` (optional): host directory with static files for the root website. Used only by the `web` service. Defaults to `./site` (inside this repo).
+
+If you do not need the static site, you can run only the API:
+
+```bash
+docker compose up -d bible-api
+```
