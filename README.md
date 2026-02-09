@@ -358,6 +358,9 @@ docker exec bible-api python3 /code/scripts/download_audio.py --yes --max-worker
 
 # скачать только один перевод/голос
 docker exec bible-api python3 /code/scripts/download_audio.py --yes --translation-alias syn --voice-alias bondarenko
+
+# NPU (npu/npu_uk): источник open.bible, там аудио в ZIP-архивах по книгам
+docker exec bible-api python3 /code/scripts/download_audio.py --yes --translation-alias npu --voice-alias npu_uk
 ```
 
 По умолчанию файлы пишутся в `MP3_FILES_PATH` (обычно `/audio` внутри контейнера).
