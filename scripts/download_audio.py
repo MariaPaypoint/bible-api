@@ -56,7 +56,7 @@ class Book:
     code9: str
 
 
-_FAIL_LINE_RE = re.compile(r"^FAIL .*?: (https?://\\S+) -> (\\S+)\\s*$")
+_FAIL_LINE_RE = re.compile(r"^FAIL .*?: (https?://S+) -> (S+)s*$")
 
 
 def _parse_fail_log(path: Path) -> List[Tuple[str, Path]]:
