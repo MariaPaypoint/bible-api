@@ -11,23 +11,30 @@ def _get_int(name: str, default: int) -> int:
         return default
 
 
+def _require(name: str) -> str:
+    value = os.getenv(name, "")
+    if value is None or value.strip() == "":
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = _get_int("DB_PORT", 3306)
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "cep")
 
-# Path to MP3 files storage
+# Path to MP3 files storage (inside container)
 MP3_FILES_PATH = os.getenv("MP3_FILES_PATH", "audio")
 
 # Base URL for audio files
 AUDIO_BASE_URL = os.getenv("AUDIO_BASE_URL", "http://localhost:8000")
 
-# API Authorization settings
-API_KEY = os.getenv("API_KEY", "change-me-api-key")
+# API Authorization settings (required)
+API_KEY = _require("API_KEY")
 
-# JWT settings
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-me-jwt-secret")
+# JWT settings (required secret)
+JWT_SECRET_KEY = _require("JWT_SECRET_KEY")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_HOURS = _get_int("JWT_EXPIRE_HOURS", 24)
 

@@ -7,7 +7,8 @@ services:
     env_file:
       - .env
     volumes:
-      - /root/cep/audio:/audio
+      # Host path with mp3 files. Set AUDIO_DIR in .env
+      - ${AUDIO_DIR:?set AUDIO_DIR}:/audio
     restart: always
     networks:
       - mysql_default
@@ -20,7 +21,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ../site:/usr/share/nginx/html:ro
+      # Optional static site root. Set SITE_DIR in .env (can be relative to this compose file).
+      - ${SITE_DIR:-./site}:/usr/share/nginx/html:ro
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: always
     networks:

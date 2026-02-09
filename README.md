@@ -361,3 +361,16 @@ docker exec bible-api python3 /code/scripts/download_audio.py --yes --translatio
 ```
 
 По умолчанию файлы пишутся в `MP3_FILES_PATH` (обычно `/audio` внутри контейнера).
+
+## Compose bind mounts (AUDIO_DIR / SITE_DIR)
+
+`docker-compose.yml` uses host bind mounts and expects these variables in `.env`:
+
+- `AUDIO_DIR` (required): host directory with downloaded mp3 files. It will be mounted into the API container as `/audio`.
+- `SITE_DIR` (optional): host directory with static files for the root website. Used only by the `web` service. Defaults to `./site` (inside this repo).
+
+If you do not need the static site, you can run only the API:
+
+```bash
+docker compose up -d bible-api
+```

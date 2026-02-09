@@ -14,17 +14,21 @@ from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
 
-# Import configuration
+# Import configuration (config.py is located in app/ and is imported as "config"
+# because the app directory is on sys.path when running via FastAPI/Uvicorn).
 try:
-    from config import API_KEY, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRE_HOURS, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
-except ImportError:
-    # Default values for development (should be overridden in config.py)
-    API_KEY = "your-api-key-here"
-    JWT_SECRET_KEY = "your-secret-key-here-change-in-production"
-    JWT_ALGORITHM = "HS256"
-    JWT_EXPIRE_HOURS = 24
-    ADMIN_USERNAME = "admin"
-    ADMIN_PASSWORD_HASH = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW"  # "secret"
+    from config import (
+        API_KEY,
+        JWT_SECRET_KEY,
+        JWT_ALGORITHM,
+        JWT_EXPIRE_HOURS,
+        ADMIN_USERNAME,
+        ADMIN_PASSWORD_HASH,
+    )
+except Exception as e:
+    raise RuntimeError(
+        'Failed to import configuration. Ensure app/config.py is importable and required env vars are set.'
+    ) from e
 
 # Security schemes
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
