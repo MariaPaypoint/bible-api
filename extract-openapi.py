@@ -14,16 +14,16 @@ def replace_anyof_with_string_type(data):
     if isinstance(data, dict):
         for key, value in data.items():
             if isinstance(value, dict):
-                # Check for anyOf construct with required conditions
+                # Check for anyOf construct: [{type: X}, {type: null}] -> {type: X}
                 if 'anyOf' in value and isinstance(value['anyOf'], list):
                     types = {v.get('type') for v in value['anyOf'] if isinstance(v, dict)}
-                    if types == {'string', 'null'}:
-                        # Keep other keys and replace only anyOf with type: string
-                        value.pop('anyOf')  # Remove anyOf
-                        value['type'] = 'string'  # Add type: string
-                    elif types == {'integer', 'null'}:
+                    non_null = types - {'null'}
+                    if len(non_null) == 1 and 'null' in types:
+                        actual_type = non_null.pop()
                         value.pop('anyOf')
-                        value['type'] = 'integer'
+                        value['type'] = actual_type
+                    else:
+                        replace_anyof_with_string_type(value)
                 else:
                     # Recursively traverse nested dictionaries
                     replace_anyof_with_string_type(value)
