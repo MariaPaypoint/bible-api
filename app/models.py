@@ -117,6 +117,7 @@ class AnomalyStatus(str, Enum):
     DISPROVED = "disproved"    # error disproved, not confirmed by verification
     CORRECTED = "corrected"    # manual correction performed
     ALREADY_RESOLVED = "already_resolved" # already fixed previously
+    DISPROVED_WHISPER = "disproved_whisper"  # auto-disproved by Whisper analysis
 
 class VoiceAnomalyModel(BaseModel):
     code: int

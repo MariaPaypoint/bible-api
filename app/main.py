@@ -621,7 +621,7 @@ def get_voice_anomalies(voice_code: int, page: int = 1, limit: int = 50, anomaly
         # Add status filter if provided
         if status:
             # Validate status value
-            valid_statuses = ["detected", "confirmed", "disproved", "corrected", "already_resolved"]
+            valid_statuses = ["detected", "confirmed", "disproved", "corrected", "already_resolved", "disproved_whisper"]
             if status not in valid_statuses:
                 raise HTTPException(status_code=400, detail=f"Invalid status value. Must be one of: {', '.join(valid_statuses)}")
             where_clause += " AND va.status = %s"
@@ -808,10 +808,11 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
             raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_code} not found")
         
         # Check if trying to change from corrected to confirmed (not allowed)
-        if anomaly['status'] == AnomalyStatus.CORRECTED and (update_data.status == AnomalyStatus.CONFIRMED or update_data.status == AnomalyStatus.DISPROVED):
+        if anomaly['status'] == AnomalyStatus.CORRECTED and update_data.status in [
+            AnomalyStatus.CONFIRMED, AnomalyStatus.DISPROVED, AnomalyStatus.DISPROVED_WHISPER]:
             raise HTTPException(
-                status_code=422, 
-                detail="Cannot change status from corrected to confirmed or disproved"
+                status_code=422,
+                detail="Cannot change status from corrected to confirmed, disproved, or disproved_whisper"
             )
         
         # Handle voice_manual_fixes operations based on status
@@ -895,8 +896,8 @@ def update_anomaly_status(anomaly_code: int, update_data: AnomalyStatusUpdateMod
                                    f"Current alignment: {current_begin}-{current_end}"
                         )
         
-        if update_data.status == AnomalyStatus.ALREADY_RESOLVED:
-            raise HTTPException(status_code=422, detail="Cannot update anomaly status to already resolved")
+        if update_data.status in [AnomalyStatus.ALREADY_RESOLVED, AnomalyStatus.DISPROVED_WHISPER]:
+            raise HTTPException(status_code=422, detail="Cannot manually set status to already_resolved or disproved_whisper")
         
         # Update the status for all anomalies of the same verse
         cursor.execute(
