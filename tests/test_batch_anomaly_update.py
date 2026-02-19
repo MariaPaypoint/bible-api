@@ -70,8 +70,8 @@ class TestBatchAnomalyUpdate:
         params = update_call[0][1]
         
         assert 'WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s' in query
-        assert params == ('confirmed', 1, 1, 1, 1)
-        
+        assert params == ('confirmed', 'confirmed', 1, 1, 1, 1)
+
         # Verify commit was called
         mock_connection.commit.assert_called_once()
 
@@ -131,7 +131,7 @@ class TestBatchAnomalyUpdate:
         params = update_call[0][1]
         
         assert 'WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s' in query
-        assert params == ('disproved', 2, 2, 3, 4)
+        assert params == ('disproved', 'disproved', 2, 2, 3, 4)
 
     @patch('app.main.create_connection')
     def test_corrected_status_updates_all_verse_anomalies(self, mock_create_connection):
@@ -193,4 +193,4 @@ class TestBatchAnomalyUpdate:
         params = update_call[0][1]
         
         assert 'WHERE voice = %s AND book_number = %s AND chapter_number = %s AND verse_number = %s' in query
-        assert params == ('corrected', 3, 1, 5, 10)
+        assert params == ('corrected', 'corrected', 3, 1, 5, 10)

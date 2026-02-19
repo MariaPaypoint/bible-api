@@ -400,7 +400,7 @@ class TestVoiceManualFixes:
         
         # Check error message
         data = response.json()
-        assert "Cannot update anomaly status to already resolved" in data["detail"]
+        assert "Cannot manually set status to already_resolved or disproved_whisper" in data["detail"]
         
         # Verify that no UPDATE query was executed (since we return error before updating)
         calls = mock_cursor.execute.call_args_list

@@ -15,22 +15,22 @@ docker logs bible-api -f                        # View logs
 docker compose down                             # Stop
 ```
 
-### Tests
+### Tests (run inside container)
 ```bash
-# Unit tests only (safe, uses mocks, no DB)
-pytest tests/ -k "not integration" -v
+# Unit tests only (safe, uses mocks, no DB writes)
+docker exec bible-api pytest tests/ -k "not integration" -v
 
-# All tests (integration tests hit real DB at localhost:8000)
-pytest tests/ -v
+# All tests (integration tests use real DB!)
+docker exec bible-api pytest tests/ -v
 
 # Single test file
-pytest tests/test_excerpt.py -v
+docker exec bible-api pytest tests/test_excerpt.py -v
 
 # Single test
-pytest tests/test_excerpt.py::test_function_name -v
+docker exec bible-api pytest tests/test_excerpt.py::test_function_name -v
 ```
 
-Integration tests (`test_*_integration.py`) make real HTTP requests to `localhost:8000` and use the DB from `app/config.py`. Unit tests use `@patch` mocks.
+Tests must run inside the `bible-api` container — they depend on env vars (`API_KEY`, etc.) and some use `requests` to hit the running server at `localhost:8000`. Integration tests (`test_*_integration.py`) make real HTTP requests and write to DB. Unit tests use `@patch` mocks.
 
 ### Migrations
 ```bash

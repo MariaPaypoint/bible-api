@@ -5,11 +5,12 @@
 
 import requests
 import sys
+import os
 
-BASE_URL = "http://localhost:8000/api"
-API_KEY = "bible-api-key-2024"
-USERNAME = "admin"
-PASSWORD = "admin123"
+BASE_URL = os.getenv("TEST_BASE_URL", "http://localhost:8000/api")
+API_KEY = os.getenv("API_KEY", "bible-api-key-2024")
+USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+PASSWORD = os.getenv("TEST_ADMIN_PASSWORD", "admin123")
 
 def test_public_endpoint_without_key():
     """Тест: публичный эндпоинт без API ключа должен вернуть 403"""

@@ -274,14 +274,11 @@ curl http://localhost:8084/docs
 ⚠️ **ВАЖНО:** Integration тесты пишут в БД! См. [docs/TESTING.md](docs/TESTING.md)
 
 ```bash
-# Установить pytest если еще не установлен
-pip install pytest
-
 # ✅ Безопасно - только unit тесты (НЕ пишут в БД)
-PYTHONPATH=/root/cep/bible-api/app pytest tests/ -k "not integration" -v
+docker exec bible-api pytest tests/ -k "not integration" -v
 
 # ⚠️ ОПАСНО - все тесты (integration тесты ПИШУТ в БД!)
-PYTHONPATH=/root/cep/bible-api/app pytest tests/ -v
+docker exec bible-api pytest tests/ -v
 ```
 
 ## Миграции
