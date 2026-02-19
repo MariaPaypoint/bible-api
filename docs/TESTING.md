@@ -1,71 +1,73 @@
 # Тестирование
 
-## Запуск тестов
+## Тестовая БД
 
-⚠️ **ВАЖНО:** Integration тесты используют реальную БД из `app/config.py`
+Тесты работают с отдельной БД `cep_test`, чтобы не затрагивать production-данные.
+
+### Первоначальная настройка
 
 ```bash
-# Установить pytest
-pip install pytest
-
-# ✅ Безопасно - только unit тесты (НЕ пишут в БД)
-pytest tests/ -k "not integration" -v
-
-# ⚠️ ОПАСНО - все тесты (integration тесты используют БД!)
-pytest tests/ -v
+# Создать тестовую БД (один раз, или после изменения миграций/seed-данных)
+docker exec bible-api python tests/setup_test_db.py
 ```
+
+Скрипт `setup_test_db.py`:
+1. Пересоздаёт БД `cep_test` (DROP + CREATE)
+2. Применяет все миграции из `migrations/`
+3. Загружает seed-данные из `tests/seed_test_data.sql`
+
+### Запуск тестов
+
+```bash
+# Unit тесты (используют моки, быстрые)
+docker exec bible-api pytest tests/ -k "not integration" -v
+
+# Все тесты (unit + integration)
+docker exec bible-api pytest tests/ -v
+
+# Один файл
+docker exec bible-api pytest tests/test_excerpt.py -v
+
+# Один тест
+docker exec bible-api pytest tests/test_excerpt.py::test_function_name -v
+```
+
+Тесты запускаются внутри контейнера `bible-api` — им нужны env-переменные (`API_KEY`, `JWT_SECRET_KEY` и т.д.).
+
+## Как это работает
+
+`tests/conftest.py` устанавливает `os.environ["DB_NAME"] = "cep_test"` **до** импорта app-модулей. Поэтому `app/config.py` при загрузке читает `DB_NAME=cep_test` и все подключения идут в тестовую БД.
+
+JWT-токен для admin-эндпоинтов получается через `TestClient` (без необходимости запущенного сервера).
 
 ## Типы тестов
 
 ### Unit тесты (безопасные)
 - Используют моки (`@patch`)
-- **НЕ пишут в БД**
+- НЕ делают реальных запросов к БД
 - Примеры: `test_anomaly_correction.py`, `test_voice_manual_fixes.py`
 
-### Integration тесты (используют БД)
-- Делают реальные HTTP запросы к `localhost:8000`
-- Используют БД из `app/config.py`
+### Integration тесты
+- Используют `TestClient` + реальную тестовую БД `cep_test`
 - Примеры: `test_*_integration.py`
+
+## Seed-данные
+
+Файл `tests/seed_test_data.sql` содержит минимальный набор данных:
+- `bible_books` — все 66 книг
+- `languages` — ru, en, uk
+- `translations` — SYNO (code=1), BSB (code=16)
+- `translation_books` — книги для этих переводов
+- `translation_verses` — gen 1:1, jhn 3:16-17
+- `voices` — голос Бондаренко (code=1)
+- `voice_alignments` — таймкоды для seed-стихов
+- `voice_anomalies` — 2 аномалии для тестов
+- `bible_stat` — данные для gen 1, jhn 3
+
+При добавлении новых тестов, которым нужны данные — добавьте записи в `seed_test_data.sql` и перезапустите `setup_test_db.py`.
 
 ## Статистика
 
-- **Unit тесты:** 64 тестов (безопасны)
-- **Integration тесты:** 37 тестов (используют БД)
-- **Всего:** 101 тестов
-
-## Запуск в контейнере
-
-Тесты предполагают запуск внутри контейнера `bible-api` (нужен доступ к БД и env-переменным):
-
-```bash
-# Unit тесты
-docker exec bible-api pytest tests/ -k "not integration" -v
-
-# Все тесты
-docker exec bible-api pytest tests/ -v
-```
-
-Тесты читают `API_KEY`, `ADMIN_USERNAME` из переменных окружения контейнера. Локальный запуск без контейнера требует установки этих переменных.
-
-## Рекомендации
-
-1. **Для разработки:** запускайте только unit тесты
-2. **Для CI/CD:** создайте тестовую БД
-3. **Для production:** НЕ запускайте integration тесты
-
-## Создание тестовой БД
-
-```sql
-CREATE DATABASE bible_pause_test LIKE bible_pause;
-INSERT bible_pause_test SELECT * FROM bible_pause;
-```
-
-```python
-# app/config_test.py
-DB_NAME = "bible_pause_test"
-```
-
-```bash
-export TEST_MODE=1
-pytest tests/ -v
-```
+- **Unit тесты:** 64
+- **Integration тесты:** 37
+- **Всего:** 101

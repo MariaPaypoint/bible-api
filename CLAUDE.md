@@ -17,10 +17,13 @@ docker compose down                             # Stop
 
 ### Tests (run inside container)
 ```bash
+# One-time setup: create test database cep_test
+docker exec bible-api python tests/setup_test_db.py
+
 # Unit tests only (safe, uses mocks, no DB writes)
 docker exec bible-api pytest tests/ -k "not integration" -v
 
-# All tests (integration tests use real DB!)
+# All tests (safe — uses test DB cep_test)
 docker exec bible-api pytest tests/ -v
 
 # Single test file
@@ -30,7 +33,7 @@ docker exec bible-api pytest tests/test_excerpt.py -v
 docker exec bible-api pytest tests/test_excerpt.py::test_function_name -v
 ```
 
-Tests must run inside the `bible-api` container — they depend on env vars (`API_KEY`, etc.) and some use `requests` to hit the running server at `localhost:8000`. Integration tests (`test_*_integration.py`) make real HTTP requests and write to DB. Unit tests use `@patch` mocks.
+Tests run inside the `bible-api` container — they depend on env vars (`API_KEY`, etc.). `conftest.py` sets `DB_NAME=cep_test` before app imports, so all tests use the test database (production DB `cep` is never touched). Integration tests (`test_*_integration.py`) use `TestClient` + real test DB. Unit tests use `@patch` mocks. Re-run `setup_test_db.py` after migration or seed data changes.
 
 ### Migrations
 ```bash
