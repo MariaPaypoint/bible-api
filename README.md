@@ -11,28 +11,29 @@ API использует двухуровневую систему автори�
 
 ```bash
 # Публичные эндпоинты
-curl -H "X-API-Key: bible-api-key-2024" http://localhost/translations
+curl -H "X-API-Key: bible-api-key-2024" http://localhost:8084/api/translations
 
 # Административные эндпоинты
-TOKEN=$(curl -X POST http://localhost/auth/login \
+TOKEN=$(curl -X POST http://localhost:8084/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
 
-curl -H "Authorization: Bearer $TOKEN" http://localhost/voices/1/anomalies
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8084/api/voices/1/anomalies
 ```
 
-📖 **Документация:** [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)  
-🧪 **Тестирование:** `python tests/test_auth.py`
+📖 **Документация:** [docs/SECURITY.md](docs/SECURITY.md)
+🧪 **Тестирование:** `pytest tests/test_auth.py -v`
 
 ## Аномалии озвучки
 
 ### Статусы аномалий
 
 - `detected` - ошибка выявлена автоматически (по умолчанию)
-- `confirmed` - ошибка подтверждена при проверке  
+- `confirmed` - ошибка подтверждена при проверке
 - `disproved` - ошибка опровергнута, не подтверждена проверкой
 - `corrected` - выполнена ручная коррекция
 - `already_resolved` - уже исправлена ранее (только для системного использования)
+- `disproved_whisper` - автоматически опровергнута анализом Whisper (только для системного использования)
 
 ### API методы
 
@@ -59,7 +60,7 @@ GET /voices/1/anomalies?status=detected
 **Тело запроса:**
 ```json
 {
-  "status": "detected|confirmed|disproved|corrected",
+  "status": "detected|confirmed|disproved|corrected|disproved_whisper",
   "begin": 10.5,  // только для статуса "corrected"
   "end": 12.0     // только для статуса "corrected"
 }
@@ -69,7 +70,7 @@ GET /voices/1/anomalies?status=detected
 - Для статуса `corrected` поля `begin` и `end` **обязательны**
 - Для других статусов поля `begin` и `end` **недопустимы**
 - `begin` должно быть меньше `end`
-- Статус `already_resolved` нельзя устанавливать вручную
+- Статусы `already_resolved` и `disproved_whisper` нельзя устанавливать вручную
 - **Нельзя изменить статус с `corrected` на `confirmed`**
 
 **Примеры запросов:**
@@ -246,9 +247,9 @@ docker compose exec bible-api python3 migrate.py migrate
 
 ### Запуск сервера
 
-#### Вариант 1: Прод-режим через Docker (по умолчанию)
+#### Запуск через Docker
 ```bash
-# Запуск в фоне (production mode)
+# Запуск в фоне
 docker compose up -d --build
 
 # Проверить статус
@@ -260,29 +261,17 @@ docker logs bible-api
 # Остановить
 docker compose down
 ```
-Сервер будет доступен на: http://localhost
-
-#### Вариант 2: Dev-режим через Docker override
-```bash
-# Запуск с override (development mode + bind mounts)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-
-# Остановить
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-```
+Сервер будет доступен на: http://localhost:8084
 
 #### Проверка работы
 ```bash
-# Swagger UI (Docker)
-curl http://localhost/docs
-
-# Swagger UI (локальный запуск)
-curl http://localhost:8001/docs
+# Swagger UI
+curl http://localhost:8084/docs
 ```
 
 ### Запуск тестов
 
-⚠️ **ВАЖНО:** Integration тесты пишут в БД! См. [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
+⚠️ **ВАЖНО:** Integration тесты пишут в БД! См. [docs/TESTING.md](docs/TESTING.md)
 
 ```bash
 # Установить pytest если еще не установлен
@@ -328,10 +317,10 @@ python3 migrate.py migrate
 
 ## Документация
 
-- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Docker команды, структура проекта, ключевые таблицы БД
-- **[docs/REVERSE_PROXY_SETUP.md](docs/REVERSE_PROXY_SETUP.md)** - схема портов, Nginx reverse proxy и маршрутизация yourdomain.com/api.yourdomain.com
+- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Docker команды, структура проекта, таблицы БД
 - **[docs/SECURITY.md](docs/SECURITY.md)** - таблица защиты всех эндпоинтов, примеры авторизации
 - **[docs/TESTING.md](docs/TESTING.md)** - ⚠️ запуск тестов (ВАЖНО! integration тесты используют БД)
+- **[docs/REVERSE_PROXY_SETUP.md](docs/REVERSE_PROXY_SETUP.md)** - опциональная настройка Nginx reverse proxy
 
 ## Скачивание аудио (MP3)
 

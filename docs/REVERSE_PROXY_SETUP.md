@@ -1,75 +1,29 @@
-# Reverse Proxy и Порты (Docker Compose)
+# Reverse Proxy (опционально)
 
-Этот документ объясняет, как в проекте работает схема с `web` (Nginx) и `bible-api` (FastAPI).
+По умолчанию `bible-api` доступен напрямую на порту `8084` (хост) → `8000` (контейнер).
 
-## 1. Какие порты открыты наружу
+При необходимости перед API можно поставить Nginx reverse proxy.
 
-В `docker-compose.yml` наружу публикуется только контейнер `web`:
+## Пример конфигурации Nginx
 
-```yaml
-services:
-  web:
-    ports:
-      - "80:80"
+Файл `deploy/nginx/default.conf` содержит пример конфигурации с:
+- Проксированием `/api/*`, `/docs`, `/openapi.json`, `/redoc` в FastAPI
+- Статическим сайтом на корне домена
+- Поддержкой отдельного API-домена (`api.yourdomain.com`)
+
+## Схема с reverse proxy
+
+```
+Клиент → Nginx (:80) → bible-api (:8000)
 ```
 
-Это означает:
-- внешний порт сервера `80` принимает Nginx;
-- FastAPI напрямую снаружи не доступен.
+- Nginx обращается к контейнеру `bible-api` по имени сервиса внутри Docker-сети
+- FastAPI напрямую снаружи недоступен (используется `expose` вместо `ports`)
 
-## 2. Почему `bible-api` не торчит в интернет
+## Схема без reverse proxy (текущая)
 
-У `bible-api` используется `expose`, а не `ports`:
-
-```yaml
-services:
-  bible-api:
-    expose:
-      - "8000"
+```
+Клиент → bible-api (:8084 → :8000)
 ```
 
-Разница:
-- `ports` = публикует порт на хост (доступ извне);
-- `expose` = порт доступен только контейнерам внутри Docker-сети.
-
-## 3. Как Nginx отправляет запросы в FastAPI
-
-В `deploy/nginx/default.conf`:
-
-```nginx
-upstream bible_api_upstream {
-    server bible-api:8000;
-}
-```
-
-Nginx обращается к контейнеру `bible-api` по имени сервиса внутри Docker-сети.
-
-## 4. Маршрутизация по хостам и путям
-
-### Для `yourdomain.com`
-- `/` и обычные страницы: отдаются как статический сайт (`/root/cep/site`);
-- `/api/*`, `/docs`, `/openapi.json`, `/redoc`: проксируются в FastAPI.
-
-### Для `api.yourdomain.com`
-- весь трафик (`/`) проксируется в FastAPI.
-
-## 5. Что это дает
-
-- На корне `yourdomain.com` можно держать сайт.
-- API изолирован и ходит через Nginx.
-- Можно использовать отдельный API-домен `api.yourdomain.com`.
-
-## 6. Как это выглядит в dev
-
-В `docker-compose.dev.yml`:
-- `bible-api` публикуется напрямую (`8000:8000`), чтобы удобно дебажить API;
-- `web` отключен профилем `prod`.
-
-## 7. Краткий поток запроса
-
-1. Клиент стучится в `http://yourdomain.com` или `http://api.yourdomain.com`.
-2. Запрос попадает в контейнер `web` (Nginx) на порту `80`.
-3. Nginx либо:
-   - отдает статический файл,
-   - либо проксирует на `bible-api:8000`.
-4. FastAPI обрабатывает API-запрос и возвращает ответ через Nginx клиенту.
+В текущем `docker-compose.yml` используется прямой маппинг портов без Nginx.

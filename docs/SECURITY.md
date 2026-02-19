@@ -18,13 +18,14 @@ API использует двухуровневую систему автори�
 | `/translations/{code}/books` | GET | API Key | Книги перевода |
 | `/chapter_with_alignment` | GET | API Key | Глава с выравниванием |
 | `/excerpt_with_alignment` | GET | API Key | Отрывок с выравниванием |
-| `/audio/{path}.mp3` | GET | API Key* | Аудиофайлы |
+| `/audio/{translation}/{voice}/{book}/{chapter}.mp3` | GET | API Key* | Аудиофайлы |
 | `/translations/{code}` | PUT | JWT | Обновить перевод |
 | `/voices/{code}` | PUT | JWT | Обновить голос |
 | `/voices/{code}/anomalies` | GET | JWT | Список аномалий |
 | `/voices/anomalies` | POST | JWT | Создать аномалию |
 | `/voices/anomalies/{code}/status` | PATCH | JWT | Обновить статус |
 | `/voices/manual-fixes` | POST | JWT | Ручная корректировка |
+| `/cache/clear` | POST | JWT | Очистить кеш |
 | `/check_translation` | GET | JWT | Проверка перевода |
 | `/check_voice` | GET | JWT | Проверка озвучки |
 
@@ -32,14 +33,15 @@ API использует двухуровневую систему автори�
 
 ## Конфигурация
 
-```python
-# app/config.py
-API_KEY = "your-api-key-here"
-JWT_SECRET_KEY = "your-secret-key"  # openssl rand -hex 32
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_HOURS = 24
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = "$2b$12$..."  # bcrypt хеш
+Все параметры задаются через переменные окружения (см. `.env.example`):
+
+```
+API_KEY=your-api-key-here
+JWT_SECRET_KEY=your-secret-key        # openssl rand -hex 32
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=$$2b$$12$$...     # bcrypt хеш ($ экранируется как $$ для docker-compose)
 ```
 
 ### Генерация хеша пароля
@@ -55,26 +57,26 @@ python -c "import bcrypt; print(bcrypt.hashpw(b'your_password', bcrypt.gensalt()
 ```bash
 # Через заголовок (рекомендуется)
 curl -H "X-API-Key: your-api-key" \
-  http://localhost:8000/translations
+  http://localhost:8084/api/translations
 
 # Аудио через query параметр (для <audio> элемента)
-curl "http://localhost:8000/audio/syn/bondarenko/01/01.mp3?api_key=your-api-key"
+curl "http://localhost:8084/api/audio/syn/bondarenko/01/01.mp3?api_key=your-api-key"
 ```
 
 ### JWT Token (административные эндпоинты)
 
 ```bash
 # 1. Получить токен
-TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:8084/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | jq -r .access_token)
 
 # 2. Использовать токен
 curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8000/voices/1/anomalies
+  http://localhost:8084/api/voices/1/anomalies
 ```
 
 ## Реализация
 
 - **`app/auth.py`** - функции авторизации и зависимости FastAPI
-- **`app/config.py`** - настройки безопасности
+- **`app/config.py`** - настройки безопасности (загрузка из переменных окружения)

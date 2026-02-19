@@ -7,21 +7,18 @@
 cp .env.example .env
 nano .env
 
-# Запуск в Docker (production mode)
+# Запуск в Docker
 docker compose up -d --build
 
 # Swagger UI
-open http://localhost/docs
+open http://localhost:8084/docs
 ```
 
 ## Docker команды
 
 ```bash
-# Прод-режим
+# Запуск
 docker compose up -d --build
-
-# Dev-режим (override)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # Логи
 docker logs bible-api -f
@@ -29,21 +26,21 @@ docker logs bible-api -f
 # Перезапуск
 docker compose restart
 
-# Остановка (prod)
+# Остановка
 docker compose down
-
-# Остановка (dev)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
 
 ## Миграции
 
 ```bash
 # Применить все миграции
-python migrations/migration_manager.py migrate
+python migrate.py migrate
+
+# Создать новую миграцию
+python migrate.py create "migration_name"
 
 # Статус
-python migrations/migration_manager.py status
+python migrate.py status
 ```
 
 См. подробнее: [../migrations/README.md](../migrations/README.md)
@@ -90,7 +87,7 @@ app/
   - SQL: `COALESCE(vmf.begin, a.begin)`
 - **`voice_anomalies`** - автоматически обнаруженные проблемы
   - Типы: `fast`, `slow`, `long`, `short`, `manual`
-  - Статусы: `detected`, `confirmed`, `disproved`, `corrected`, `already_resolved`
+  - Статусы: `detected`, `confirmed`, `disproved`, `corrected`, `already_resolved`, `disproved_whisper`
 
 ### Служебные
 
